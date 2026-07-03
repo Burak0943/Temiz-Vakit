@@ -65,7 +65,7 @@ export function setupDhikr(root) {
   function increment() {
     state.count++
     save(state)
-    vibrate(10)
+    vibrate([15])
     if (state.target > 0 && state.count === state.target) {
       vibrate([30, 80, 30, 80, 30])
       pad.classList.remove('celebrate')
@@ -75,15 +75,34 @@ export function setupDhikr(root) {
     render()
   }
 
+  // İşaretçi için tek olay tipi: pointerdown. Klavye ayrı keydown yolundan sayılır;
+  // preventDefault tarayıcının sentezleyeceği click'i bastırır, böylece hiçbir
+  // girişte ikinci bir tetiklenme yolu kalmaz.
+  // isPrimary KULLANILMIYOR: dokunmada isPrimary belge genelidir — ekranın başka
+  // yerine yaslanan parmak/avuç pad dokunuşlarını sessizce düşürürdü. Pad'in kendi
+  // aktif işaretçisi takip edilir: pad üstündeki eşzamanlı ikinci parmak sayılmaz.
+  let activePointerId = null
   pad.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0 || !e.isPrimary) return // sağ/orta tık ve ikinci parmak sayılmaz
+    if (e.button !== 0) return // sağ/orta tık sayılmaz
+    if (activePointerId !== null) return // pad üstünde ikinci parmak sayılmaz
+    activePointerId = e.pointerId
+    try {
+      pad.setPointerCapture(e.pointerId) // up/cancel pad dışında bitse de yakalanır
+    } catch {
+      // sentetik/etkin olmayan işaretçi: yakalama şart değil
+    }
     increment()
   })
-  pad.addEventListener('click', (e) => {
-    if (e.detail === 0) increment() // klavye (Enter/Space) erişimi
-  })
+  const releasePointer = (e) => {
+    if (e.pointerId === activePointerId) activePointerId = null
+  }
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    pad.addEventListener(ev, releasePointer)
+  }
   pad.addEventListener('keydown', (e) => {
-    if (e.repeat) e.preventDefault() // Enter basılı tutmanın auto-repeat sayımını engelle
+    if (e.key !== ' ' && e.key !== 'Enter') return
+    e.preventDefault()
+    if (!e.repeat) increment() // basılı tutmanın auto-repeat'i sayılmaz
   })
 
   root.querySelector('#dhikr-targets').addEventListener('click', (e) => {

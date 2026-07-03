@@ -1,7 +1,16 @@
 // Temiz Vakit service worker — app shell önbelleği, cache-first.
 // Vakit hesabı adhan ile tamamen yerel; uygulamanın ağ bağımlılığı yok.
-const CACHE = 'tv-v1'
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg', '/favicon.svg']
+const CACHE = 'tv-v2'
+const APP_SHELL = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  '/icon.svg',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
+  '/favicon.svg',
+]
 
 // Yanıtı yeniden sararak saklar: redirect'li yanıt navigasyonda network error
 // ürettiğinden redirected bayrağı temiz bir kopya önbelleğe konur.
@@ -27,7 +36,10 @@ self.addEventListener('install', (event) => {
       const html = await cache.match('/index.html').then((r) => r.text())
       const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((m) => m[1])
       if (assets.length) await precache(cache, assets)
-      await self.skipWaiting()
+      // skipWaiting bilinçli olarak YOK: eski shell'den açılmış sayfalar
+      // yaşarken eski cache silinirse modül istekleri ortada kalıyor
+      // (cache-first güncelleme yarışı). Yeni SW eski sekmeler kapanınca
+      // devralır; güncelleme bir sonraki ziyarette etkinleşir.
     })(),
   )
 })

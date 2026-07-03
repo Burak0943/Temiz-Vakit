@@ -1,11 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Koyu zemin: maskable güvenli alan tamamen dolu -->
+  <!-- Koyu zemin tam kaplama; içerik maskable %20 güvenli alan payıyla ortada -->
   <rect width="512" height="512" fill="#0f1419"/>
-  <!-- Hilal: iki dairenin farkı -->
-  <circle cx="238" cy="262" r="150" fill="#6fb3e0"/>
-  <circle cx="288" cy="236" r="138" fill="#0f1419"/>
-  <!-- Minimal kadran: akrep + yelkovan -->
-  <line x1="278" y1="278" x2="278" y2="196" stroke="#f2f5f8" stroke-width="16" stroke-linecap="round"/>
-  <line x1="278" y1="278" x2="338" y2="312" stroke="#f2f5f8" stroke-width="16" stroke-linecap="round"/>
-  <circle cx="278" cy="278" r="12" fill="#f2f5f8"/>
+  <!-- Amber hilal: iki dairenin farkı -->
+  <circle cx="245" cy="225" r="120" fill="#d4a017"/>
+  <circle cx="286" cy="205" r="106" fill="#0f1419"/>
+  <!-- Altta ince kadran yayı -->
+  <path d="M146 356 A150 150 0 0 0 366 356" fill="none" stroke="#d4a017" stroke-width="10" stroke-linecap="round"/>
 </svg>
