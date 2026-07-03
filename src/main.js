@@ -13,7 +13,7 @@ import { setupDhikr } from './dhikr.js'
 const DEFAULT_LOCATION = { lat: 37.845, lon: 27.839, label: 'Aydın (varsayılan)', isDefault: true }
 
 const PRAYERS = [
-  { key: 'fajr', label: 'İmsak' },
+  { key: 'fajr', label: 'İmsak / Sabah' },
   { key: 'sunrise', label: 'Güneş' },
   { key: 'dhuhr', label: 'Öğle' },
   { key: 'asr', label: 'İkindi' },
@@ -206,3 +206,8 @@ document.querySelector('#use-location').addEventListener('click', requestLocatio
 refresh()
 requestLocation()
 setInterval(tick, 1000)
+
+// Cache-first SW dev'de HMR modüllerini bayatlatacağından kayıt yalnızca production'da
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+}

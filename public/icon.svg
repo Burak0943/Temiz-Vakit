@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Koyu zemin: maskable güvenli alan tamamen dolu -->
+  <rect width="512" height="512" fill="#0f1419"/>
+  <!-- Hilal: iki dairenin farkı -->
+  <circle cx="238" cy="262" r="150" fill="#6fb3e0"/>
+  <circle cx="288" cy="236" r="138" fill="#0f1419"/>
+  <!-- Minimal kadran: akrep + yelkovan -->
+  <line x1="278" y1="278" x2="278" y2="196" stroke="#f2f5f8" stroke-width="16" stroke-linecap="round"/>
+  <line x1="278" y1="278" x2="338" y2="312" stroke="#f2f5f8" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="278" cy="278" r="12" fill="#f2f5f8"/>
+</svg>

@@ -3,8 +3,8 @@
 
 const STORAGE_KEY = 'tv_prayers'
 
-// İmsak satırı hariç; sabah namazı işareti Güneş satırında tutulur
-export const TRACKED = ['sunrise', 'dhuhr', 'asr', 'maghrib', 'isha']
+// 5 farz: sabah namazı İmsak satırında "fajr" anahtarıyla tutulur; Güneş bilgi amaçlı
+export const TRACKED = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']
 
 export function localDateKey(date) {
   const y = date.getFullYear()
@@ -16,10 +16,28 @@ export function localDateKey(date) {
 export function loadPrayerData() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY))
-    return parsed && typeof parsed === 'object' ? parsed : {}
+    const data = parsed && typeof parsed === 'object' ? parsed : {}
+    return migrateSunrise(data)
   } catch {
     return {}
   }
+}
+
+// v0.2'de sabah namazı "sunrise" anahtarıyla kaydediliyordu; "fajr"a taşı
+function migrateSunrise(data) {
+  let migratedDays = 0
+  for (const [day, marks] of Object.entries(data)) {
+    if (Array.isArray(marks) && marks.includes('sunrise')) {
+      const set = new Set(marks.map((k) => (k === 'sunrise' ? 'fajr' : k)))
+      data[day] = TRACKED.filter((k) => set.has(k))
+      migratedDays++
+    }
+  }
+  if (migratedDays > 0) {
+    console.log(`tv_prayers migrasyonu: ${migratedDays} gündeki "sunrise" kaydı "fajr" anahtarına taşındı`)
+    savePrayerData(data)
+  }
+  return data
 }
 
 export function savePrayerData(data) {
