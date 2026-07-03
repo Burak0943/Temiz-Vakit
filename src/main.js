@@ -1,5 +1,14 @@
 import './style.css'
 import { Coordinates, CalculationMethod, PrayerTimes } from 'adhan'
+import {
+  TRACKED,
+  localDateKey,
+  loadPrayerData,
+  savePrayerData,
+  toggleMark,
+  computeStreak,
+} from './tracking.js'
+import { setupDhikr } from './dhikr.js'
 
 const DEFAULT_LOCATION = { lat: 37.845, lon: 27.839, label: 'Aydın (varsayılan)', isDefault: true }
 
@@ -21,21 +30,32 @@ const timeFormat = new Intl.DateTimeFormat('tr-TR', {
 let location = DEFAULT_LOCATION
 let target = null // { label, time, isTomorrow }
 let renderedDay = ''
+let lastToday = []
+let lastNext = null
+let prayerData = loadPrayerData()
 
 document.querySelector('#app').innerHTML = `
-  <header>
-    <h1>Temiz Vakit</h1>
-    <p id="location-line">
-      <span id="location-label"></span>
-      <button id="use-location" type="button">Konumu Kullan</button>
-      <span id="location-note"></span>
-    </p>
-  </header>
-  <section id="countdown-box">
-    <p id="next-label"></p>
-    <p id="countdown">--:--:--</p>
+  <section id="view-times">
+    <header>
+      <h1>Temiz Vakit</h1>
+      <p id="location-line">
+        <span id="location-label"></span>
+        <button id="use-location" type="button">Konumu Kullan</button>
+        <span id="location-note"></span>
+      </p>
+    </header>
+    <section id="countdown-box">
+      <p id="next-label"></p>
+      <p id="countdown">--:--:--</p>
+    </section>
+    <ul id="times"></ul>
+    <p id="streak"></p>
   </section>
-  <ul id="times"></ul>
+  <section id="view-dhikr" hidden></section>
+  <nav id="tabs">
+    <button id="tab-times" type="button" class="active">Vakitler</button>
+    <button id="tab-dhikr" type="button">Zikir</button>
+  </nav>
 `
 
 function computeTimes(date, lat, lon) {
@@ -70,31 +90,49 @@ function renderCountdown(now) {
     `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`
 }
 
+function renderTimes() {
+  const marks = prayerData[localDateKey(new Date())] || []
+  document.querySelector('#times').innerHTML = lastToday
+    .map((p) => {
+      const isNext = p.key === lastNext.key
+      // Hedef yarına taştıysa vurgulu satır geri sayımın gerçek hedefini göstersin
+      const shownTime = isNext && lastNext.isTomorrow ? lastNext.time : p.time
+      const label = isNext && lastNext.isTomorrow ? `${p.label} (yarın)` : p.label
+      const marked = marks.includes(p.key)
+      const circle = TRACKED.includes(p.key)
+        ? `<button type="button" class="mark${marked ? ' marked' : ''}" data-key="${p.key}"
+             aria-pressed="${marked}" aria-label="${p.label} vaktini kıldım olarak işaretle"></button>`
+        : '<span class="mark-space"></span>'
+      return `
+      <li class="${isNext ? 'next' : ''}">
+        ${circle}
+        <span class="p-label">${label}</span>
+        <time>${timeFormat.format(shownTime)}</time>
+      </li>`
+    })
+    .join('')
+}
+
+function renderStreak() {
+  const days = computeStreak(prayerData, new Date())
+  document.querySelector('#streak').textContent = `Seri: ${days} gün`
+}
+
 function refresh() {
   const now = new Date()
   const { today, next } = findNext(now)
   target = next
   renderedDay = now.toDateString()
+  lastToday = today
+  lastNext = next
 
   document.querySelector('#location-label').textContent = `Konum: ${location.label}`
   document.querySelector('#use-location').hidden = !location.isDefault
   document.querySelector('#next-label').textContent =
     `Sıradaki vakit: ${next.label}${next.isTomorrow ? ' (yarın)' : ''}`
 
-  document.querySelector('#times').innerHTML = today
-    .map((p) => {
-      const isNext = p.key === next.key
-      // Hedef yarına taştıysa vurgulu satır geri sayımın gerçek hedefini göstersin
-      const shownTime = isNext && next.isTomorrow ? next.time : p.time
-      const label = isNext && next.isTomorrow ? `${p.label} (yarın)` : p.label
-      return `
-      <li class="${isNext ? 'next' : ''}">
-        <span>${label}</span>
-        <time>${timeFormat.format(shownTime)}</time>
-      </li>`
-    })
-    .join('')
-
+  renderTimes()
+  renderStreak()
   renderCountdown(now)
 }
 
@@ -133,6 +171,28 @@ function requestLocation() {
     { timeout: 10000 },
   )
 }
+
+// İşaret daireleri: liste her yenilendiğinde yeniden kurulduğu için delegasyon
+document.querySelector('#times').addEventListener('click', (e) => {
+  const btn = e.target.closest('.mark')
+  if (!btn) return
+  prayerData = toggleMark(prayerData, localDateKey(new Date()), btn.dataset.key)
+  savePrayerData(prayerData)
+  renderTimes()
+  renderStreak()
+})
+
+// Sekmeler: sayfa yenilenmeden görünüm değişimi
+function showView(name) {
+  document.querySelector('#view-times').hidden = name !== 'times'
+  document.querySelector('#view-dhikr').hidden = name !== 'dhikr'
+  document.querySelector('#tab-times').classList.toggle('active', name === 'times')
+  document.querySelector('#tab-dhikr').classList.toggle('active', name === 'dhikr')
+}
+document.querySelector('#tab-times').addEventListener('click', () => showView('times'))
+document.querySelector('#tab-dhikr').addEventListener('click', () => showView('dhikr'))
+
+setupDhikr(document.querySelector('#view-dhikr'))
 
 // Diyanet ile karşılaştırma için: bugünün Aydın (varsayılan) vakitleri
 console.table(
