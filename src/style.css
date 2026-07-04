@@ -475,6 +475,11 @@ header h1 {
   cursor: pointer;
 }
 
+#update-reload:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
 #update-close {
   font: inherit;
   font-size: 18px;

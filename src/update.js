@@ -6,6 +6,8 @@ export function setupUpdateBar() {
   let dismissed = false // X'e basıldıysa bu oturumda bir daha gösterme
   let userInitiated = false // controllerchange yalnız Yenile sonrası reload etmeli
   let reloaded = false // çift reload koruması
+  let updating = false // Yenile çift tıklama guard'ı
+  let safetyTimer = null // koşulsuz güvenlik ağı zamanlayıcısı
 
   const bar = document.createElement('div')
   bar.id = 'update-bar'
@@ -23,20 +25,26 @@ export function setupUpdateBar() {
     window.location.reload()
   }
 
-  // Yenile: bayat closure referansı yerine tıklama ANINDA kayıttan taze
-  // reg.waiting okunur; bekleyen yoksa düz reload. Mesaj herhangi bir nedenle
-  // işlenmezse (ör. WebKit'in uykudaki worker'a teslim aksaklıkları) 3 sn
-  // içinde controllerchange gelmediğinde güvenlik ağı zorla yeniler.
+  // Yenile: güvenlik ağı İLK iş olarak kurulur — sonraki hiçbir satır ondan
+  // önce throw edemez. Mesaj işlenirse controllerchange ağı iptal edip hemen
+  // yeniler; işlenmezse (worker yok, teslim aksaklığı, istisna) 2.5 sn'de
+  // koşulsuz reload gelir. Buton "hiçbir şey yapmama" durumuna düşemez.
   async function activateUpdate() {
+    if (updating) return // 1) çift tıklama guard'ı
+    updating = true
+    safetyTimer = setTimeout(() => window.location.reload(), 2500) // 2) koşulsuz ağ
+    // 3) görsel geri bildirim
+    const btn = bar.querySelector('#update-reload')
+    btn.textContent = 'Yenileniyor…'
+    btn.disabled = true
     userInitiated = true
-    const reg = await navigator.serviceWorker.getRegistration()
-    const waiting = reg?.waiting
-    if (!waiting) {
-      forceReload() // başka istemci geçirmiş ya da referans bayat
-      return
+    try {
+      const reg = await navigator.serviceWorker.getRegistration()
+      reg?.waiting?.postMessage({ type: 'SKIP_WAITING' })
+    } catch (err) {
+      // Ağ zaten kurulu; 2.5 sn içinde koşulsuz yenilenecek
+      console.warn('SKIP_WAITING gönderilemedi, güvenlik ağı yenileyecek:', err)
     }
-    waiting.postMessage({ type: 'SKIP_WAITING' })
-    setTimeout(forceReload, 3000)
   }
 
   function showBar(waitingWorker) {
@@ -61,6 +69,8 @@ export function setupUpdateBar() {
       bar.hidden = true
       return
     }
+    // Geçiş geldi: güvenlik ağını iptal et, hemen yenile (çift reload korumalı)
+    if (safetyTimer) clearTimeout(safetyTimer)
     forceReload()
   })
 
