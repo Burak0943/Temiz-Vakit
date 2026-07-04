@@ -23,7 +23,7 @@ export function setupEsma(root, onBack) {
     <button type="button" id="esma-back">‹ Geri</button>
     <h2>Esmaül Hüsna</h2>
     <ul id="esma-list"></ul>
-    <p class="footnote">Adlar ve anlamlar: suresioku.com Esmaül Hüsna listesi (67. isim hariç) · Arapça ve 67. isim: AlAdhan API</p>
+    <p class="footnote">Adlar ve anlamlar: suresioku.com Esmaül Hüsna listesi (67. isim kaynakta yok) · Arapça: AlAdhan API</p>
   `
   if (onBack) root.querySelector('#esma-back').addEventListener('click', onBack)
 

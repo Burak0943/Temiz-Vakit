@@ -51,6 +51,7 @@ export function setupQibla(root, getLocation) {
     <p id="qibla-angle"></p>
     <button id="qibla-start" type="button" hidden>Pusulayı başlat</button>
     <p id="qibla-status"></p>
+    <button id="qibla-static" type="button" hidden>Sensörsüz göster</button>
     <p class="footnote">Pusula cihaz sensörüne bağlıdır; metal/manyetik ortamda sapabilir.</p>
   `
 
@@ -58,6 +59,7 @@ export function setupQibla(root, getLocation) {
   const directionEl = root.querySelector('#qibla-direction')
   const statusEl = root.querySelector('#qibla-status')
   const startBtn = root.querySelector('#qibla-start')
+  const staticBtn = root.querySelector('#qibla-static')
 
   let qiblaAngle = 0
   let lastLocKey = ''
@@ -85,7 +87,7 @@ export function setupQibla(root, getLocation) {
     return Math.abs((((a - b) % 360) + 540) % 360 - 180)
   }
 
-  // Hedefe her zaman en kısa yoldan dön (uzun tur atma)
+  // Anlık konumlama (yalnız rAF döngüsü DURURKEN kullanılır: statik mod/ilk çizim)
   function pointArrow(targetDeg) {
     const curMod = ((currentRotation % 360) + 360) % 360
     const delta = ((targetDeg - curMod + 540) % 360) - 180
@@ -93,40 +95,25 @@ export function setupQibla(root, getLocation) {
     arrow.style.transform = `rotate(${currentRotation}deg)`
   }
 
-  function updateHeading(deviceHeading) {
-    // Sensör yönü cihazın FİZİKSEL üst kenarına göredir; yatay (landscape)
-    // tutulan cihazda ekran çerçevesine çevirmek için ekran açısı eklenir
-    const screenAngle = screen.orientation?.angle ?? window.orientation ?? 0
-    const heading = (deviceHeading + screenAngle + 360) % 360
-    const rotation = (qiblaAngle - heading + 360) % 360
-    pointArrow(rotation)
-    // Histerezis: girişte ±5°, çıkışta ±8° — sınırdaki sensör gürültüsü
-    // tekrarlı titreşim/yanıp sönme üretmesin
-    const diff = angularDiff(heading, qiblaAngle)
-    const isAligned = aligned ? diff <= 8 : diff <= 5
-    if (isAligned && !aligned && navigator.vibrate) navigator.vibrate(30)
-    aligned = isAligned
-    arrow.classList.toggle('aligned', isAligned)
-    directionEl.classList.toggle('aligned', isAligned)
-    if (isAligned) {
-      directionEl.innerHTML = `${CHECK_SVG} Kıble yönündesiniz`
-    } else if (rotation <= 180) {
-      directionEl.textContent = `Kıbleye ${Math.round(rotation)}° sağa`
-    } else {
-      directionEl.textContent = `Kıbleye ${Math.round(360 - rotation)}° sola`
-    }
-  }
+  // --- Sensör → çizim ayrımı: handler yalnız değişken yazar, DOM'u rAF çizer ---
+  let targetHeading = null // sensörden gelen son yön (ekran telafili)
+  let sensorEventCount = 0 // ilk 3 saniyedeki olay sıklığı teşhisi için
+  let freqTimer = null
+  let needsCalibrationNote = false
+  let rafId = null
+  let lastDirectionKey = ''
+  const SMOOTHING = 0.2 // üstel yumuşatma katsayısı
 
   function onOrientation(e) {
+    // Bu handler DOM'a YAZMAZ; yalnız hedef açıyı ve teşhis sayaçlarını günceller
     let heading = null
     if (typeof e.webkitCompassHeading === 'number' && !Number.isNaN(e.webkitCompassHeading)) {
       heading = e.webkitCompassHeading // iOS: kuzeyden saat yönü
     } else if (e.alpha != null) {
       heading = (360 - e.alpha) % 360 // Android: alpha saat yönünün tersidir
       if (!e.absolute && !calibrationNoted) {
-        // absolute olmayan alpha keyfî bir referansa göredir
         calibrationNoted = true
-        statusEl.textContent = 'Pusula kalibrasyonu gerekebilir (cihazı 8 çizer gibi hareket ettirin).'
+        needsCalibrationNote = true // notu rAF tek sefer yazar
       }
     }
     // Masaüstü Chrome tüm değerleri null tek bir olay ateşleyebilir; statik
@@ -136,7 +123,61 @@ export function setupQibla(root, getLocation) {
       clearTimeout(fallbackTimer)
       fallbackTimer = null
     }
-    updateHeading(heading)
+    sensorEventCount++
+    // Sensör yönü cihazın FİZİKSEL üst kenarına göredir; yatay (landscape)
+    // tutulan cihazda ekran çerçevesine çevirmek için ekran açısı eklenir
+    const screenAngle = screen.orientation?.angle ?? window.orientation ?? 0
+    targetHeading = (heading + screenAngle + 360) % 360
+  }
+
+  // Hizalanma/histerezis mantığı DEĞİŞMEDİ (girişte ±5°, çıkışta ±8°, giriş
+  // titreşimi); yalnız durum DEĞİŞTİĞİNDE DOM'a yazılır.
+  function updateUiState(heading, rotation) {
+    const diff = angularDiff(heading, qiblaAngle)
+    const isAligned = aligned ? diff <= 8 : diff <= 5
+    if (isAligned && !aligned && navigator.vibrate) navigator.vibrate(30)
+    if (isAligned !== aligned) {
+      aligned = isAligned
+      arrow.classList.toggle('aligned', isAligned)
+      directionEl.classList.toggle('aligned', isAligned)
+    }
+    const key = isAligned
+      ? 'hizali'
+      : rotation <= 180
+        ? `Kıbleye ${Math.round(rotation)}° sağa`
+        : `Kıbleye ${Math.round(360 - rotation)}° sola`
+    if (key !== lastDirectionKey) {
+      lastDirectionKey = key
+      if (isAligned) directionEl.innerHTML = `${CHECK_SVG} Kıble yönündesiniz`
+      else directionEl.textContent = key
+    }
+    if (needsCalibrationNote) {
+      needsCalibrationNote = false
+      statusEl.textContent = 'Pusula kalibrasyonu gerekebilir (cihazı 8 çizer gibi hareket ettirin).'
+    }
+  }
+
+  function drawFrame() {
+    rafId = requestAnimationFrame(drawFrame)
+    if (targetHeading == null) return
+    const targetRotation = (qiblaAngle - targetHeading + 360) % 360
+    // 360° sarmalında en kısa yol + üstel yumuşatma
+    const curMod = ((currentRotation % 360) + 360) % 360
+    const delta = ((targetRotation - curMod + 540) % 360) - 180
+    currentRotation += delta * SMOOTHING
+    arrow.style.transform = `rotate(${currentRotation}deg)` // TEK yazım noktası
+    updateUiState(targetHeading, targetRotation)
+  }
+
+  function startRaf() {
+    if (rafId == null) rafId = requestAnimationFrame(drawFrame)
+  }
+
+  function stopRaf() {
+    if (rafId != null) {
+      cancelAnimationFrame(rafId)
+      rafId = null
+    }
   }
 
   function stopSensor() {
@@ -144,6 +185,11 @@ export function setupQibla(root, getLocation) {
     activeEventName = null
     if (fallbackTimer) clearTimeout(fallbackTimer)
     fallbackTimer = null
+    if (freqTimer) clearTimeout(freqTimer)
+    freqTimer = null
+    stopRaf() // görünüm/sensör kapanınca döngü de durur (pil)
+    targetHeading = null
+    staticBtn.hidden = true
   }
 
   function staticMode(message) {
@@ -154,8 +200,10 @@ export function setupQibla(root, getLocation) {
     arrow.classList.remove('aligned')
     directionEl.classList.remove('aligned')
     directionEl.textContent = ''
+    lastDirectionKey = ''
     statusEl.textContent = message
   }
+  staticBtn.addEventListener('click', () => staticMode(STATIC_NOTE))
 
   function startSensor() {
     // Tekrar çağrıda önceki dinleyici/zamanlayıcı öksüz kalmasın
@@ -164,8 +212,20 @@ export function setupQibla(root, getLocation) {
     activeEventName =
       'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation'
     window.addEventListener(activeEventName, onOrientation)
-    // Masaüstü gibi olay hiç üretmeyen ortamlarda statik moda düş
+    startRaf() // çizim döngüsü yalnız sensör (=Kıble görünümü) aktifken çalışır
+    // Masaüstü gibi olay hiç üretmeyen ortamlarda statik moda düş (eşik korunuyor)
     fallbackTimer = setTimeout(() => staticMode(STATIC_NOTE), 2000)
+    // "Bazen hiç dönmüyor" teşhisi: ilk 3 saniyede <5 olay geldiyse
+    // kalibrasyon notu + statik moda geçiş teklifi göster
+    sensorEventCount = 0
+    freqTimer = setTimeout(() => {
+      freqTimer = null
+      if (activeEventName && sensorEventCount < 5) {
+        statusEl.textContent =
+          'Pusula verisi seyrek geliyor; kalibrasyon gerekebilir (cihazı 8 çizer gibi hareket ettirin).'
+        staticBtn.hidden = false
+      }
+    }, 3000)
   }
 
   function activate() {
@@ -176,6 +236,7 @@ export function setupQibla(root, getLocation) {
     calibrationNoted = false
     statusEl.textContent = ''
     directionEl.textContent = ''
+    lastDirectionKey = '' // metin silindi; yaz-değişince önbelleği de sıfırlanmalı
     // Önceki oturumdan bayat altın/parlama durumu kalmasın
     arrow.classList.remove('aligned')
     directionEl.classList.remove('aligned')

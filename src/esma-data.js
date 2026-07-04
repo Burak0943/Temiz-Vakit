@@ -3,11 +3,13 @@
 // Türkçe adlar ve anlamlar: suresioku.com "Allah'ın 99 İsmi ve Anlamları"
 // sayfasından otomatik çıkarıldı (çekim: 4 Temmuz 2026), Arapça anahtarla
 // eşleştirildi; elle yazılmadı, imla düzeltmesi yapılmadı.
-// NOT: Kaynak listede el-Ehad (67) bulunmuyor (98 isim); harmanlama yasağı
-// gereği bu girdinin latin adı AlAdhan'dan kaldı, anlamı null bırakıldı.
+// NOT: Kaynak listede el-Ehad (67) bulunmuyor (98 isim); anlamı null bırakıldı.
+// Kullanıcı onaylı üç mikro düzeltme (v1.5): 67'nin latin adı "el-Ehad" yapıldı,
+// no 2'deki kaynak dizgi hatası "hey şeyi" -> "her şeyi" düzeltildi,
+// no 92'nin anlamı büyük harfle başlatıldı.
 export const ESMA_DATA = [
   { no: 1, arapca: "الرَّحْمَنُ", latin: "er-Rahmân", anlam: "Sonsuz merhametiyle lütuf ve ihsanda bulunan." },
-  { no: 2, arapca: "الرَّحِيمُ", latin: "er-Rahîm", anlam: "Rahmetiyle hey şeyi kuşatan." },
+  { no: 2, arapca: "الرَّحِيمُ", latin: "er-Rahîm", anlam: "Rahmetiyle her şeyi kuşatan." },
   { no: 3, arapca: "الْمَلِكُ", latin: "el-Melik", anlam: "Bütün varlıkların sahibi/hükümdârı." },
   { no: 4, arapca: "الْقُدُّوسُ", latin: "el-Kuddûs", anlam: "Eksiklik ve kusurlardan münezzeh/uzak olan, bütün kemâl sıfatları kendisinde toplayan." },
   { no: 5, arapca: "السَّلاَمُ", latin: "es-Selâm", anlam: "Esenlik ve selamet veren, yaratılmışlara özgü değişikliklerden ve yok oluştan münezzeh olan." },
@@ -72,7 +74,7 @@ export const ESMA_DATA = [
   { no: 64, arapca: "الْوَاجِدُ", latin: "el-Vâcid", anlam: "Her şeyi bilen, hiçbir şeye muhtaç olmayan, emrini ve isteğini daima gerçekleştiren." },
   { no: 65, arapca: "الْمَاجِدُ", latin: "el-Mâcid", anlam: "Şânı yüce ve sonsuz kerem sahibi olan." },
   { no: 66, arapca: "الْواحِدُ", latin: "el-Vâhid", anlam: "Bir, tek, yegâne varlık; zâtında, ilah ve rab oluşunda ortağı olmayan." },
-  { no: 67, arapca: "اَلاَحَدُ", latin: "Al Ahad", anlam: null },
+  { no: 67, arapca: "اَلاَحَدُ", latin: "el-Ehad", anlam: null },
   { no: 68, arapca: "الصَّمَدُ", latin: "es-Samed", anlam: "Herkesin kendisine muhtaç olduğu, kendisi ise kimseye muhtaç olmayan, ezelî ve ebedî olan." },
   { no: 69, arapca: "الْقَادِرُ", latin: "el-Kâdir", anlam: "Her şeye gücü yeten." },
   { no: 70, arapca: "الْمُقْتَدِرُ", latin: "el-Muktedir", anlam: "Güç ve kuvvetinde hiçbir sınır olmayan." },
@@ -97,7 +99,7 @@ export const ESMA_DATA = [
   { no: 89, arapca: "الْمُغْنِي", latin: "el-Muğnî", anlam: "İhtiyaçtan kurtaran zengin kılan." },
   { no: 90, arapca: "اَلْمَانِعُ", latin: "el-Mâni`", anlam: "Hikmeti gereği engel koyan, mani olan." },
   { no: 91, arapca: "الضَّارَّ", latin: "ed-Dârr", anlam: "Hikmeti gereği elem ve zarar verici şeyleri yaratan." },
-  { no: 92, arapca: "النَّافِعُ", latin: "en-Nâfi`", anlam: "hayrı ve faydayı yaratan ve veren." },
+  { no: 92, arapca: "النَّافِعُ", latin: "en-Nâfi`", anlam: "Hayrı ve faydayı yaratan ve veren." },
   { no: 93, arapca: "النُّورُ", latin: "en-Nûr", anlam: "Nurlandıran, her şeyi aydınlatan, kalplere nur ve iman veren." },
   { no: 94, arapca: "الْهَادِي", latin: "el-Hâdî", anlam: "Doğru yolu gösteren, hidâyete erdiren." },
   { no: 95, arapca: "الْبَدِيعُ", latin: "el-Bedî`", anlam: "Örneksiz ve benzersiz olarak yoktan yaratan." },

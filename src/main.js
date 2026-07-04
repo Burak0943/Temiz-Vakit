@@ -259,6 +259,39 @@ function tick() {
   }
 }
 
+// Konum adı (reverse geocoding, OpenStreetMap Nominatim). Konum adı süstür,
+// koordinat gerçektir: istek başarısızsa koordinat gösterimi sessizce kalır.
+// Tek istek/konum değişimi: son bilinen koordinata 0.01°'den yakınsa ağa çıkılmaz.
+const GEO_CACHE_KEY = 'tv_geo_name'
+
+async function fetchLocationName(lat, lon) {
+  let cached = null
+  try {
+    cached = JSON.parse(localStorage.getItem(GEO_CACHE_KEY))
+  } catch {
+    cached = null
+  }
+  if (cached && Math.abs(cached.lat - lat) < 0.01 && Math.abs(cached.lon - lon) < 0.01) {
+    return cached.name
+  }
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=tr&zoom=10`,
+  )
+  if (!res.ok) throw new Error('geocode')
+  const data = await res.json()
+  const a = data.address || {}
+  const il = a.province || a.state || ''
+  const ilce = a.county || a.town || a.district || a.city_district || a.city || ''
+  const name = il && ilce && il !== ilce ? `${il} / ${ilce}` : il || ilce
+  if (!name) throw new Error('geocode-bos')
+  try {
+    localStorage.setItem(GEO_CACHE_KEY, JSON.stringify({ lat, lon, name }))
+  } catch {
+    // önbelleklenemese de ad bu oturumda kullanılır
+  }
+  return name
+}
+
 function requestLocation() {
   const note = document.querySelector('#location-note')
   if (!navigator.geolocation) {
@@ -275,7 +308,17 @@ function requestLocation() {
         label: `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`,
         isDefault: false,
       }
-      refresh()
+      refresh() // vakitler konum adını BEKLEMEZ: önce koordinatla hesaplanır
+      fetchLocationName(latitude, longitude)
+        .then((name) => {
+          // bu arada konum yeniden değiştiyse bayat adı yazma
+          if (location.lat !== latitude || location.lon !== longitude) return
+          location = { ...location, label: name }
+          document.querySelector('#location-label').textContent = `Konum: ${name}`
+        })
+        .catch(() => {
+          // sessiz geri dönüş: koordinat gösterimi zaten ekranda
+        })
     },
     () => {
       // reddedildi/başarısız: varsayılan Aydın ile devam, ama sessiz kalma

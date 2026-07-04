@@ -141,7 +141,8 @@ header h1 {
   position: absolute;
   inset: 0;
   color: #8b9dc3;
-  transition: transform 0.3s ease-out;
+  /* transition bilinçli YOK: yumuşatma rAF döngüsünde — çifte animasyon
+     gecikme yaratıyordu */
 }
 
 #qibla-arrow svg {
@@ -194,6 +195,18 @@ header h1 {
   border: none;
   border-radius: 8px;
   padding: 10px 22px;
+  cursor: pointer;
+}
+
+#qibla-static {
+  margin-top: 8px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 14px;
   cursor: pointer;
 }
 
