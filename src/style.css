@@ -67,141 +67,83 @@ header h1 {
   border-color: var(--accent);
 }
 
-#qibla-open {
-  font: inherit;
-  color: var(--gold);
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 3px 10px;
-  cursor: pointer;
-}
-
-#qibla-open:hover {
-  border-color: var(--gold);
-}
-
-/* Kıble pusulası overlay'i */
-/* Eski motorlarda UA'nın [hidden] kuralı !important değildir; display:flex
-   onu ezmesin diye gizli durum açıkça tanımlanır */
-#qibla-overlay[hidden] {
-  display: none;
-}
-
-#qibla-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  background: var(--bg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 56px 24px 24px;
+/* Kıble sekmesi */
+#view-qibla {
   text-align: center;
 }
 
-#qibla-overlay h2 {
-  margin: 0;
+#view-qibla h2 {
+  margin: 0 0 12px;
   font-size: 20px;
   font-weight: 600;
   color: var(--text-bright);
-}
-
-#qibla-close {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  font: inherit;
-  font-size: 26px;
-  line-height: 1;
-  color: var(--text-dim);
-  background: none;
-  border: none;
-  padding: 6px 10px;
-  cursor: pointer;
-}
-
-#qibla-angle {
-  margin: 0;
-  font-size: 16px;
-  color: var(--text);
+  text-align: left;
 }
 
 #qibla-compass {
   position: relative;
-  width: 240px;
-  height: 240px;
-  border: 2px solid var(--border);
-  border-radius: 50%;
-  background: var(--surface);
+  width: 70%;
+  max-width: 280px;
+  aspect-ratio: 1;
+  margin: 10px auto 0;
 }
 
-.q-mark {
-  position: absolute;
-  font-size: 14px;
-  color: var(--text-dim);
-}
-
-.q-n {
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: var(--text-bright);
-  font-weight: 600;
-}
-
-.q-s {
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.q-e {
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.q-w {
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+#qibla-dial {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 #qibla-arrow {
   position: absolute;
   inset: 0;
+  color: #8b9dc3;
+  transition: transform 0.3s ease-out;
 }
 
-#qibla-arrow::before {
-  content: '';
-  position: absolute;
-  top: 34px;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 13px solid transparent;
-  border-top: none;
-  border-bottom: 88px solid var(--text-bright);
+#qibla-arrow svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-#qibla-arrow::after {
-  content: '';
+#qibla-arrow.aligned {
+  color: var(--gold);
+  filter: drop-shadow(0 0 8px rgba(212, 160, 23, 0.55));
+}
+
+#qibla-kaaba {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 14px;
-  height: 14px;
   transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: var(--border);
+  line-height: 0;
 }
 
-#qibla-arrow.aligned::before {
-  border-bottom-color: var(--gold);
+#qibla-direction {
+  margin: 18px 0 0;
+  min-height: 30px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+#qibla-direction.aligned {
+  color: var(--gold);
+}
+
+#qibla-angle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
 }
 
 #qibla-start {
+  margin-top: 14px;
   font: inherit;
   font-weight: 600;
   color: var(--bg);
@@ -213,7 +155,7 @@ header h1 {
 }
 
 #qibla-status {
-  margin: 0;
+  margin: 10px auto 0;
   font-size: 14px;
   color: var(--text-dim);
   max-width: 320px;
@@ -555,22 +497,39 @@ header h1 {
   display: flex;
   background: var(--surface);
   border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 #tabs button {
   flex: 1;
-  padding: 14px 0 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 0 9px;
   background: none;
   border: none;
   border-top: 2px solid transparent;
   color: var(--text-dim);
   font: inherit;
+  font-size: 11px;
+  line-height: 1.2;
   cursor: pointer;
 }
 
+#tabs button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 #tabs button.active {
-  color: var(--text-bright);
-  border-top-color: var(--accent);
+  color: var(--gold);
+  border-top-color: var(--gold);
 }
 
 /* Zikirmatik */

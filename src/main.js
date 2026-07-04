@@ -55,7 +55,6 @@ document.querySelector('#app').innerHTML = `
       <p id="location-line">
         <span id="location-label"></span>
         <button id="use-location" type="button">Konumu Kullan</button>
-        <button id="qibla-open" type="button">Kıble</button>
         <span id="location-note"></span>
       </p>
     </header>
@@ -70,11 +69,28 @@ document.querySelector('#app').innerHTML = `
   <section id="view-monthly" hidden></section>
   <section id="view-holidays" hidden></section>
   <section id="view-dhikr" hidden></section>
+  <section id="view-qibla" hidden></section>
   <nav id="tabs">
-    <button id="tab-times" type="button" class="active" aria-current="page">Vakitler</button>
-    <button id="tab-monthly" type="button">Aylık</button>
-    <button id="tab-holidays" type="button">Günler</button>
-    <button id="tab-dhikr" type="button">Zikir</button>
+    <button id="tab-times" type="button" class="active" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span>Vakitler</span>
+    </button>
+    <button id="tab-monthly" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg>
+      <span>Aylık</span>
+    </button>
+    <button id="tab-holidays" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <span>Günler</span>
+    </button>
+    <button id="tab-dhikr" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.5"/><circle cx="6.5" cy="15.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/></svg>
+      <span>Zikir</span>
+    </button>
+    <button id="tab-qibla" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z"/></svg>
+      <span>Kıble</span>
+    </button>
   </nav>
 `
 
@@ -211,7 +227,7 @@ document.querySelector('#times').addEventListener('click', (e) => {
 })
 
 // Sekmeler: sayfa yenilenmeden görünüm değişimi
-const VIEWS = ['times', 'monthly', 'holidays', 'dhikr']
+const VIEWS = ['times', 'monthly', 'holidays', 'dhikr', 'qibla']
 function showView(name) {
   for (const v of VIEWS) {
     document.querySelector(`#view-${v}`).hidden = v !== name
@@ -222,6 +238,8 @@ function showView(name) {
   }
   // scrollIntoView gizli öğede çalışmadığından görünüm açıldıktan sonra
   if (name === 'monthly') monthly?.scrollToToday()
+  // Kıble sekmesi: açılınca sensör akışı başlar, ayrılınca durur
+  qibla?.setVisible(name === 'qibla')
 }
 for (const v of VIEWS) {
   document.querySelector(`#tab-${v}`).addEventListener('click', () => showView(v))
@@ -230,7 +248,7 @@ for (const v of VIEWS) {
 setupDhikr(document.querySelector('#view-dhikr'))
 monthly = setupMonthly(document.querySelector('#view-monthly'), () => location)
 holidays = setupHolidays(document.querySelector('#view-holidays'))
-qibla = setupQibla(document.querySelector('#qibla-open'), () => location)
+qibla = setupQibla(document.querySelector('#view-qibla'), () => location)
 
 // Diyanet ile karşılaştırma için: bugünün Aydın (varsayılan) vakitleri
 console.table(
