@@ -11,6 +11,7 @@ import {
 import { setupDhikr } from './dhikr.js'
 import { setupMonthly } from './monthly.js'
 import { setupHolidays } from './holidays.js'
+import { setupUpdateBar } from './update.js'
 
 const DEFAULT_LOCATION = { lat: 37.845, lon: 27.839, label: 'Aydın (varsayılan)', isDefault: true }
 
@@ -229,7 +230,5 @@ refresh()
 requestLocation()
 setInterval(tick, 1000)
 
-// Cache-first SW dev'de HMR modüllerini bayatlatacağından kayıt yalnızca production'da
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
-}
+// SW kaydı + güncelleme şeridi (yalnızca production'da; dev'de HMR bayatlar)
+setupUpdateBar()

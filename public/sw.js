@@ -1,6 +1,6 @@
 // Temiz Vakit service worker — app shell önbelleği, cache-first.
 // Vakit hesabı adhan ile tamamen yerel; uygulamanın ağ bağımlılığı yok.
-const CACHE = 'tv-v4'
+const CACHE = 'tv-v5'
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -42,6 +42,12 @@ self.addEventListener('install', (event) => {
       // devralır; güncelleme bir sonraki ziyarette etkinleşir.
     })(),
   )
+})
+
+// Otomatik skipWaiting yok (yukarıdaki not); yalnızca kullanıcı "Yenile" ile
+// onaylarsa sayfa bekleyen worker'a bu mesajı gönderir.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
