@@ -567,7 +567,9 @@ header h1 {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap; /* uzun ad + hat sığmazsa üst üste binmeden alt satıra iner */
-  min-height: 28px; /* Arapça hat olsun olmasın kart yüksekliği zıplamasın */
+  /* Amiri'nin 20px'teki font kutusu 49px, mürekkebi ~34px: satıra gerçek
+     fiziksel alan ayrılır ki alt uzantılar anlam metnine binmesin */
+  min-height: 48px;
 }
 
 #ec-latin {
@@ -578,11 +580,12 @@ header h1 {
 #ec-arabic {
   font-family: 'Amiri Quran', serif;
   font-size: 20px;
-  line-height: 1; /* Amiri'nin yüksek çıkıntıları satırı itmesin */
+  line-height: 1.9; /* Amiri mürekkep yüksekliği için güvenli satır kutusu */
   color: var(--gold);
 }
 
 #ec-anlam {
+  margin-top: 8px;
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--text-dim);
@@ -618,6 +621,7 @@ header h1 {
 
 .e-anlam {
   grid-column: 2 / -1;
+  margin-top: 6px; /* Amiri alt uzantısı ile anlam mürekkebi arasında güvenli pay */
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--text-dim);
@@ -642,6 +646,7 @@ header h1 {
 .e-ar {
   font-family: 'Amiri Quran', serif;
   font-size: 18px;
+  line-height: 1.9; /* Amiri alt uzantıları anlam satırına binmesin */
   color: var(--gold);
 }
 
