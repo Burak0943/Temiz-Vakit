@@ -10,6 +10,7 @@ import {
 } from './tracking.js'
 import { setupDhikr } from './dhikr.js'
 import { setupMonthly } from './monthly.js'
+import { setupHolidays } from './holidays.js'
 
 const DEFAULT_LOCATION = { lat: 37.845, lon: 27.839, label: 'Aydın (varsayılan)', isDefault: true }
 
@@ -30,6 +31,7 @@ const timeFormat = new Intl.DateTimeFormat('tr-TR', {
 
 let location = DEFAULT_LOCATION
 let monthly = null // setupMonthly dönüşü; refresh monthly'den önce koşabilir
+let holidays = null // setupHolidays dönüşü
 let target = null // { label, time, isTomorrow }
 let renderedDay = ''
 let lastToday = []
@@ -52,12 +54,15 @@ document.querySelector('#app').innerHTML = `
     </section>
     <ul id="times"></ul>
     <p id="streak"></p>
+    <p class="footnote">Vakitler astronomik hesapla üretilir; Diyanet takviminden ±1 dk farkedebilir.</p>
   </section>
   <section id="view-monthly" hidden></section>
+  <section id="view-holidays" hidden></section>
   <section id="view-dhikr" hidden></section>
   <nav id="tabs">
     <button id="tab-times" type="button" class="active" aria-current="page">Vakitler</button>
     <button id="tab-monthly" type="button">Aylık</button>
+    <button id="tab-holidays" type="button">Günler</button>
     <button id="tab-dhikr" type="button">Zikir</button>
   </nav>
 `
@@ -140,6 +145,8 @@ function refresh() {
   renderCountdown(now)
   // Konum değişimi ve gece yarısı geçişinde aylık tablo da tazelensin
   monthly?.render()
+  // Gece yarısı geçişinde "X gün kaldı" etiketleri tazelensin
+  holidays?.render()
 }
 
 function tick() {
@@ -189,7 +196,7 @@ document.querySelector('#times').addEventListener('click', (e) => {
 })
 
 // Sekmeler: sayfa yenilenmeden görünüm değişimi
-const VIEWS = ['times', 'monthly', 'dhikr']
+const VIEWS = ['times', 'monthly', 'holidays', 'dhikr']
 function showView(name) {
   for (const v of VIEWS) {
     document.querySelector(`#view-${v}`).hidden = v !== name
@@ -207,6 +214,7 @@ for (const v of VIEWS) {
 
 setupDhikr(document.querySelector('#view-dhikr'))
 monthly = setupMonthly(document.querySelector('#view-monthly'), () => location)
+holidays = setupHolidays(document.querySelector('#view-holidays'))
 
 // Diyanet ile karşılaştırma için: bugünün Aydın (varsayılan) vakitleri
 console.table(
