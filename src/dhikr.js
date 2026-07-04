@@ -1,7 +1,11 @@
 // Zikirmatik: büyük dokunma alanı, hedef (33/99/serbest), 1 sn basılı tutmalı sıfırlama.
 // Durum localStorage "tv_dhikr" -> { count, target } (target 0 = serbest)
-// Altında Dualar listesi + görünüm içi okuma ekranı (Diyanet kaynaklı metinler).
+// Altında Dualar listesi + görünüm içi okuma ekranı (Diyanet kaynaklı metinler)
+// + Nazar bölümü (içerik AlQuran Cloud hattından; ayet kartı Kur'an ile ortak).
 import { PRAYERS_DATA } from './prayers-data.js'
+import { getSurahDetail } from './quran-api.js'
+import { createAyahCard } from './ayah-card.js'
+import { SURAH_NAMES_TR } from './surah-names-tr.js'
 
 const STORAGE_KEY = 'tv_dhikr'
 const TARGETS = [33, 99, 0]
@@ -32,7 +36,7 @@ function vibrate(pattern) {
   if (navigator.vibrate) navigator.vibrate(pattern)
 }
 
-export function setupDhikr(root) {
+export function setupDhikr(root, player) {
   const state = load()
 
   root.innerHTML = `
@@ -66,6 +70,15 @@ export function setupDhikr(root) {
         <p id="reader-meal" hidden></p>
       </div>
       <p id="reader-source" class="footnote"></p>
+    </div>
+    <div id="nazar-reader" hidden>
+      <button type="button" id="nazar-back">‹ Geri</button>
+      <h2>Nazar için Okunacaklar</h2>
+      <p id="nazar-note">Nazara karşı Felak ve Nâs sureleri ile Kalem suresi 51-52. ayetlerin okunması tavsiye edilmiştir.</p>
+      <p id="nazar-status" hidden></p>
+      <button type="button" id="nazar-retry" hidden>Tekrar dene</button>
+      <div id="nazar-body"></div>
+      <p class="footnote">Kaynak: AlQuran Cloud · Meal: Diyanet İşleri · Okunuş: Çeviriyazı</p>
     </div>
   `
 
@@ -278,6 +291,130 @@ export function setupDhikr(root) {
     li.appendChild(btn)
     list.appendChild(li)
   }
+
+  // ---- Nazar bölümü: içerik TAMAMI AlQuran Cloud hattından (içerik kuralı) ----
+  // Felak (113, tam) + Nâs (114, tam) + Kalem (68) 51-52. ayetler.
+  // Kartlar Kur'an okuma ekranıyla ORTAK bileşenden (ayah-card.js); ilk açılışta
+  // getSurahDetail üçünü de IndexedDB'ye yazar — bölüm offline da açılır.
+  const nazarEl = root.querySelector('#nazar-reader')
+  const nazarBody = root.querySelector('#nazar-body')
+  const nazarStatus = root.querySelector('#nazar-status')
+  const nazarRetry = root.querySelector('#nazar-retry')
+  const trName = (n) => SURAH_NAMES_TR[n - 1] || `Sure ${n}`
+
+  const NAZAR_PARTS = [
+    { surah: 113, from: null, to: null },
+    { surah: 114, from: null, to: null },
+    { surah: 68, from: 51, to: 52 },
+  ]
+  let nazarSections = null // [{ number, title, ayahs, cards }]
+
+  function markNazarPlaying(auto = false) {
+    for (const el of nazarBody.querySelectorAll('.ayah-card.playing')) el.classList.remove('playing')
+    const st = player.getState()
+    if (!st || !nazarSections) return
+    const section = nazarSections.find((s) => s.ayahs === st.ayahs)
+    if (!section) return
+    const card = section.cards[st.index]
+    if (!card) return
+    card.classList.add('playing')
+    if (auto && !nazarEl.hidden && !root.hidden) card.scrollIntoView({ block: 'center' })
+  }
+
+  function playNazar(section, index) {
+    player.play({
+      title: section.playerTitle,
+      ayahs: section.ayahs,
+      index,
+      // Konum kaydı BİLİNÇLİ yok: nazar dinlemek Kur'an "kaldığın yer"ini taşımaz
+      onIndex: (_i, auto) => markNazarPlaying(auto),
+      onStop: () => markNazarPlaying(),
+    })
+  }
+
+  let nazarLoading = false
+  async function loadNazar() {
+    // Süren yükleme de korunur: geri çıkıp tekrar girişte çifte istek/render olmaz
+    if (nazarSections || nazarLoading) return
+    nazarLoading = true
+    nazarStatus.hidden = false
+    nazarStatus.textContent = 'Yükleniyor…'
+    nazarRetry.hidden = true
+    let details
+    try {
+      details = await Promise.all(NAZAR_PARTS.map((p) => getSurahDetail(p.surah)))
+    } catch (err) {
+      nazarStatus.textContent = err.message
+      nazarRetry.hidden = false
+      return
+    } finally {
+      nazarLoading = false
+    }
+    nazarStatus.hidden = true
+    nazarSections = NAZAR_PARTS.map((p, i) => {
+      const d = details[i]
+      // Her bölüm KOPYA dizi kullanır: memoize edilen detail.ayahs ile kimlik
+      // paylaşılsaydı Kur'an okuyucusunun vurgu eşleşmesi (ayahs kimliği) nazar
+      // çalarken de tutar, ilerlemeyi karşı görünüm izlemediğinden bayat kalırdı.
+      const ayahs = p.from
+        ? d.ayahs.filter((a) => a.no >= p.from && a.no <= p.to)
+        : [...d.ayahs]
+      return {
+        number: d.number,
+        title: p.from
+          ? `${d.number}. ${trName(d.number)} Suresi · ${p.from}-${p.to}. ayetler`
+          : `${d.number}. ${trName(d.number)} Suresi`,
+        playerTitle: `${d.number}. ${trName(d.number)}`,
+        ayahs,
+        cards: [],
+      }
+    })
+    const frag = document.createDocumentFragment()
+    for (const s of nazarSections) {
+      const h = document.createElement('h3')
+      h.className = 'nazar-surah-title'
+      h.textContent = s.title
+      frag.appendChild(h)
+      s.ayahs.forEach((a, idx) => {
+        const card = createAyahCard(a, s.number, () => playNazar(s, idx))
+        s.cards.push(card)
+        frag.appendChild(card)
+      })
+    }
+    nazarBody.replaceChildren(frag)
+    markNazarPlaying() // bölüm yeniden açıldığında çalan kart vurgusu geri gelsin
+  }
+
+  let nazarMainScrollY = 0
+  function openNazar() {
+    nazarMainScrollY = window.scrollY
+    // Kur'an ekranındaki Arapça boyut tercihi nazar kartlarına da yansısın
+    try {
+      const v = Number(localStorage.getItem('tv_arfontsize'))
+      if (v >= 22 && v <= 34) nazarBody.style.setProperty('--ar-size', `${v}px`)
+    } catch {
+      // tercih okunamazsa CSS'teki 26px varsayılanı geçerli
+    }
+    main.hidden = true
+    nazarEl.hidden = false
+    window.scrollTo(0, 0)
+    loadNazar()
+    markNazarPlaying() // yeniden açılışta çalan/duran kart vurgusu eşitlensin
+  }
+  root.querySelector('#nazar-back').addEventListener('click', () => {
+    nazarEl.hidden = true
+    main.hidden = false
+    window.scrollTo(0, nazarMainScrollY)
+  })
+  nazarRetry.addEventListener('click', loadNazar)
+
+  const nazarLi = document.createElement('li')
+  const nazarBtn = document.createElement('button')
+  nazarBtn.type = 'button'
+  nazarBtn.textContent = 'Nazar için Okunacaklar'
+  nazarBtn.addEventListener('click', openNazar)
+  nazarLi.appendChild(nazarBtn)
+  list.appendChild(nazarLi)
 
   render()
 }

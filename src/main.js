@@ -12,6 +12,7 @@ import { setupDhikr } from './dhikr.js'
 import { setupMonthly } from './monthly.js'
 import { setupHolidays, formatHijriDate, computeEvents, daysLeft } from './holidays.js'
 import { setupQuran } from './quran.js'
+import { setupPlayer } from './player.js'
 import { setupEsma, esmaForDate } from './esma.js'
 import { setupServiceWorker } from './update.js'
 import { setupQibla } from './qibla.js'
@@ -379,8 +380,10 @@ setupSwipe(document.querySelector('#app'), (dir) => {
   showView(TABS[idx])
 })
 
-setupDhikr(document.querySelector('#view-dhikr'))
-quran = setupQuran(document.querySelector('#view-quran'))
+// Mini oynatıcı tekil: Kur'an sekmesi ile Nazar bölümü aynı kurulumu paylaşır
+const player = setupPlayer()
+setupDhikr(document.querySelector('#view-dhikr'), player)
+quran = setupQuran(document.querySelector('#view-quran'), player)
 monthly = setupMonthly(document.querySelector('#view-monthly'), () => location)
 holidays = setupHolidays(document.querySelector('#view-holidays'), () => showView('times'))
 setupEsma(document.querySelector('#view-esma'), () => showView('times'))
