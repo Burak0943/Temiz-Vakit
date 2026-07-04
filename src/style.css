@@ -671,7 +671,8 @@ header h1 {
   color: var(--text-bright);
 }
 
-#quran-resume {
+#quran-resume,
+#cevsen-resume {
   display: block;
   width: 100%;
   margin-bottom: 14px;
@@ -681,6 +682,164 @@ header h1 {
   text-align: left;
   color: var(--gold);
   background: var(--surface-next);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* Cevşen: bölüm listesi + hat sayfası görüntüleyici */
+#cevsen-back,
+#cv-back {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+#cevsen-main h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+#cevsen-sections {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#cevsen-sections li {
+  border-bottom: 1px solid var(--border);
+}
+
+#cevsen-sections li:last-child {
+  border-bottom: none;
+}
+
+#cevsen-sections button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 16px;
+  font: inherit;
+  text-align: left;
+  color: var(--text-bright);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+#cevsen-sections button:hover {
+  background: var(--surface-next);
+}
+
+#cv-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+#cv-top #cv-back {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+#cv-title {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* Hat sayfaları beyaz zeminli taramalar: koyu temada da BEYAZ kart üstünde */
+#cv-stage {
+  background: #fff;
+  border-radius: 10px;
+  padding: 6px;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#cv-img {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+}
+
+#cv-status {
+  margin: 10px 0;
+  font-size: 14px;
+  color: #444; /* beyaz zemin üstünde okunur koyu gri */
+}
+
+#cv-retry {
+  font: inherit;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+#cv-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+#cv-prev,
+#cv-next {
+  flex: 1;
+  min-height: 48px;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--text-bright);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#cv-prev:disabled,
+#cv-next:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+#cv-jump {
+  width: 72px;
+  min-height: 44px;
+  padding: 4px 8px;
+  font: inherit;
+  text-align: center;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+#cv-go {
+  min-height: 44px;
+  padding: 4px 14px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   cursor: pointer;

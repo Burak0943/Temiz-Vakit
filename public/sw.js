@@ -1,6 +1,13 @@
 // Temiz Vakit service worker — app shell önbelleği, cache-first.
 // Vakit hesabı adhan ile tamamen yerel; uygulamanın ağ bağımlılığı yok.
-const CACHE = 'tv-v22'
+const CACHE = 'tv-v23'
+// Cevşen hat sayfası görüntüleri (kulliyat.risale.online): CORS başlığı
+// olmadığından sayfa JS'i blob okuyamaz — offline, SW'nin opak yanıt
+// önbelleğiyle sağlanır. AYRI ve KALICI cache: sürüm bump'larında silinmez,
+// ziyaret edilen sayfalar birikir (toplu ön-indirme yok).
+const CEVSEN_CACHE = 'tv-cevsen-sayfa'
+const CEVSEN_HOST = 'kulliyat.risale.online'
+const CEVSEN_PATH = '/images/Cevsen/'
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -55,14 +62,39 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((k) => k !== CACHE && k !== CEVSEN_CACHE) // Cevşen sayfaları kalıcı
+            .map((k) => caches.delete(k)),
+        ),
+      )
       .then(() => self.clients.claim()),
   )
 })
 
 self.addEventListener('fetch', (event) => {
   const { request } = event
-  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return
+  if (request.method !== 'GET') return
+  const url = new URL(request.url)
+  // Cevşen sayfa görüntüleri: cache-first, opak yanıt saklanır (no-cors img).
+  // Sayfa haritası sabit istekler ürettiğinden 404 önbelleğe girme riski yok.
+  if (url.hostname === CEVSEN_HOST && url.pathname.startsWith(CEVSEN_PATH)) {
+    event.respondWith(
+      caches.open(CEVSEN_CACHE).then((cache) =>
+        cache.match(request).then(
+          (hit) =>
+            hit ||
+            fetch(request).then((response) => {
+              if (response.ok || response.type === 'opaque') cache.put(request, response.clone())
+              return response
+            }),
+        ),
+      ),
+    )
+    return
+  }
+  if (url.origin !== self.location.origin) return
   event.respondWith(
     caches.match(request).then(
       (hit) =>
