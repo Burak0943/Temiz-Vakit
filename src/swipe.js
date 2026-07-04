@@ -1,7 +1,8 @@
 // Sekmeler arası yatay swipe algılama (dokunmatik hedefli).
 // Eşikler: yatay hareket ≥ 60px, yatay/dikey oran ≥ 2, süre ≤ 600ms.
 // İstisna bölgeleri: üzerinde başlayan hareketler swipe sayılmaz.
-const EXCLUDE_ZONES = '#dhikr-pad, #qibla-compass, #month-nav, #prayer-reader, #quran-reader'
+const EXCLUDE_ZONES =
+  '#dhikr-pad, #qibla-compass, #month-nav, #prayer-reader, #quran-reader, #quran-player'
 
 export function setupSwipe(container, onSwipe) {
   let start = null // { x, y, t, id }

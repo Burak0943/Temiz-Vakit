@@ -1,6 +1,6 @@
 // Temiz Vakit service worker — app shell önbelleği, cache-first.
 // Vakit hesabı adhan ile tamamen yerel; uygulamanın ağ bağımlılığı yok.
-const CACHE = 'tv-v14'
+const CACHE = 'tv-v15'
 const APP_SHELL = [
   '/',
   '/index.html',

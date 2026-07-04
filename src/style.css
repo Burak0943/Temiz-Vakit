@@ -713,9 +713,108 @@ header h1 {
 }
 
 .ayah-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 12px;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
+}
+
+.ayah-play {
+  padding: 4px 8px;
+  color: var(--gold);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.ayah-play svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  stroke: none;
+}
+
+.ayah-card.playing {
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+
+/* Mini oynatıcı: sekme barının üstünde sabit */
+#quran-player {
+  position: fixed;
+  bottom: calc(57px + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 8px 6px 14px;
+  background: var(--surface-next);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  font-size: 13px;
+  z-index: 10;
+}
+
+#qp-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+#qp-surah {
+  font-weight: 600;
+  color: var(--text-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#qp-ayah {
+  color: var(--text-dim);
+}
+
+#qp-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#qp-controls button {
+  padding: 6px;
+  color: var(--text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+#qp-controls svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#qp-toggle {
+  color: var(--gold);
+}
+
+#qp-close {
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-dim);
 }
 
 /* Alt sekme çubuğu */

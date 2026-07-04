@@ -31,6 +31,31 @@ export function setupQuran(root) {
     </div>
   `
 
+  // --- Mini oynatıcı: body'ye eklenir ki sekme değişse de görünür kalsın ---
+  const player = document.createElement('div')
+  player.id = 'quran-player'
+  player.hidden = true
+  player.innerHTML = `
+    <div id="qp-info">
+      <span id="qp-surah"></span>
+      <span id="qp-ayah"></span>
+    </div>
+    <div id="qp-controls">
+      <button type="button" id="qp-prev" aria-label="Önceki ayet">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 5v14L8 12zM7 5v14"/></svg>
+      </button>
+      <button type="button" id="qp-toggle" aria-label="Oynat / duraklat">
+        <svg id="qp-play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
+        <svg id="qp-pause-icon" viewBox="0 0 24 24" aria-hidden="true" style="display:none"><path d="M7 5v14M17 5v14"/></svg>
+      </button>
+      <button type="button" id="qp-next" aria-label="Sonraki ayet">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l9-7zM17 5v14"/></svg>
+      </button>
+      <button type="button" id="qp-close" aria-label="Kapat">×</button>
+    </div>
+  `
+  document.body.appendChild(player)
+
   const main = root.querySelector('#quran-main')
   const reader = root.querySelector('#quran-reader')
   const ayahsEl = root.querySelector('#qr-ayahs')
@@ -157,7 +182,7 @@ export function setupQuran(root) {
     jumpInput.max = String(detail.ayahs.length)
     jumpInput.value = ''
     const frag = document.createDocumentFragment()
-    for (const a of detail.ayahs) {
+    detail.ayahs.forEach((a, index) => {
       const card = document.createElement('article')
       card.className = 'ayah-card'
       card.id = `ayah-${a.no}`
@@ -181,14 +206,30 @@ export function setupQuran(root) {
       }
       const meta = document.createElement('div')
       meta.className = 'ayah-meta'
-      meta.textContent = `${detail.number}:${a.no}`
+      const label = document.createElement('span')
+      label.textContent = `${detail.number}:${a.no}`
+      meta.appendChild(label)
+      if (a.ses) {
+        const playBtn = document.createElement('button')
+        playBtn.type = 'button'
+        playBtn.className = 'ayah-play'
+        playBtn.setAttribute('aria-label', `Ayet ${a.no} sesini oynat`)
+        playBtn.innerHTML =
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"/></svg>'
+        playBtn.addEventListener('click', () => {
+          errorStreak = 0 // kullanıcı eylemi: hata serisi baştan
+          playIndex(detail, index)
+        })
+        meta.appendChild(playBtn)
+      }
       card.appendChild(meta)
       frag.appendChild(card)
-    }
+    })
     ayahsEl.replaceChildren(frag)
     savePosition(number, targetAyah || 1)
     if (targetAyah) scrollToAyah(targetAyah)
     else window.scrollTo(0, 0)
+    markPlayingCard() // çalan sure yeniden açıldıysa vurgusu geri gelsin
   }
 
   // Geri: en üstte görünen ayeti "kaldığın yer" olarak sakla
@@ -221,5 +262,134 @@ export function setupQuran(root) {
     if (e.key === 'Enter') jump()
   })
 
+  // --- Sesli okuma: HTML5 Audio, ayet ayet stream, otomatik ilerleme ---
+  const audio = new Audio()
+  audio.preload = 'auto'
+  player.audioEl = audio // test/teşhis kancası (DOM dışı ses öğesine erişim)
+  let playState = null // { detail, index } — çalan sure/ayet
+  let isPlaying = false
+
+  function markPlayingCard(scroll = false) {
+    for (const el of ayahsEl.querySelectorAll('.ayah-card.playing')) el.classList.remove('playing')
+    if (!playState || root.hidden || reader.hidden) return
+    if (openSurahNo !== playState.detail.number) return
+    const card = root.querySelector(`#ayah-${playState.detail.ayahs[playState.index].no}`)
+    if (!card) return
+    card.classList.add('playing')
+    if (scroll) card.scrollIntoView({ block: 'center' })
+  }
+
+  function updatePlayerUi() {
+    if (!playState) return
+    const a = playState.detail.ayahs[playState.index]
+    player.querySelector('#qp-surah').textContent =
+      `${playState.detail.number}. ${playState.detail.name}`
+    player.querySelector('#qp-ayah').textContent = `Ayet ${a.no}`
+    player.querySelector('#qp-play-icon').style.display = isPlaying ? 'none' : ''
+    player.querySelector('#qp-pause-icon').style.display = isPlaying ? '' : 'none'
+  }
+
+  function showPlayer() {
+    const tabs = document.querySelector('#tabs')
+    if (tabs) player.style.bottom = `${Math.ceil(tabs.getBoundingClientRect().height)}px`
+    player.hidden = false
+  }
+
+  function playIndex(detail, index, scrollToCard = false) {
+    playState = { detail, index }
+    const a = detail.ayahs[index]
+    savePosition(detail.number, a.no)
+    isPlaying = true
+    if (a.ses) {
+      audio.src = a.ses
+      audio.play().catch(() => {
+        // otomatik oynatma engeli vb: duraklamış görün, akışı bozma
+        isPlaying = false
+        updatePlayerUi()
+      })
+    }
+    showPlayer()
+    updatePlayerUi()
+    markPlayingCard(scrollToCard)
+  }
+
+  function stopPlayback() {
+    audio.pause()
+    audio.removeAttribute('src')
+    playState = null
+    isPlaying = false
+    player.hidden = true
+    markPlayingCard()
+  }
+
+  function advance(dir, auto = false) {
+    if (!playState) return
+    const next = playState.index + dir
+    if (next < 0) return
+    if (next >= playState.detail.ayahs.length) {
+      // sure bitti: oynatıcı kalır, durum duraklatılmış gösterilir
+      audio.pause()
+      isPlaying = false
+      updatePlayerUi()
+      return
+    }
+    playIndex(playState.detail, next, auto)
+  }
+
+  // Ardışık hata sınırı: çevrimdışı gibi tüm ayetlerin ses yüklemesi başarısız
+  // olduğunda zincir sure sonuna kadar koşup kayıtlı konumu sürüklemesin
+  let errorStreak = 0
+  audio.addEventListener('ended', () => advance(1, true))
+  audio.addEventListener('error', () => {
+    if (!playState) return
+    errorStreak++
+    if (errorStreak >= 3) {
+      isPlaying = false
+      updatePlayerUi()
+      return
+    }
+    // tek ayetin sesi yüklenemezse (ör. 404) akış durmaz, sonrakine geçilir
+    advance(1, true)
+  })
+  audio.addEventListener('playing', () => {
+    errorStreak = 0 // gerçek oynatma başladı; hata serisi sıfırlanır
+  })
+  audio.addEventListener('play', () => {
+    isPlaying = true
+    updatePlayerUi()
+  })
+  audio.addEventListener('pause', () => {
+    isPlaying = false
+    updatePlayerUi()
+  })
+
+  player.querySelector('#qp-toggle').addEventListener('click', () => {
+    if (!playState) return
+    errorStreak = 0 // kullanıcı eylemi: hata serisi baştan
+    if (isPlaying) audio.pause()
+    else audio.play().catch(() => {})
+  })
+  player.querySelector('#qp-prev').addEventListener('click', () => {
+    errorStreak = 0
+    advance(-1)
+  })
+  player.querySelector('#qp-next').addEventListener('click', () => {
+    errorStreak = 0
+    advance(1)
+  })
+  player.querySelector('#qp-close').addEventListener('click', stopPlayback)
+
+  // Rotasyon/pencere değişiminde oynatıcı sekme barının üstünde kalsın
+  window.addEventListener('resize', () => {
+    if (!player.hidden) showPlayer()
+  })
+
   loadList()
+
+  return {
+    // Sekmeye dönüşte çalan ayetin vurgusu geri gelsin
+    setVisible(visible) {
+      if (visible) markPlayingCard()
+    },
+  }
 }

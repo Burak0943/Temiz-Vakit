@@ -44,6 +44,7 @@ let location = DEFAULT_LOCATION
 let monthly = null // setupMonthly dönüşü; refresh monthly'den önce koşabilir
 let holidays = null // setupHolidays dönüşü
 let qibla = null // setupQibla dönüşü
+let quran = null // setupQuran dönüşü
 let target = null // { label, time, isTomorrow }
 let renderedDay = ''
 let greetingMinute = -1 // selam satırı dakikada bir, mevcut tick içinde güncellenir
@@ -291,6 +292,8 @@ function showView(name) {
   if (name === 'monthly') monthly?.scrollToToday()
   // Kıble sekmesi: açılınca sensör akışı başlar, ayrılınca durur
   qibla?.setVisible(name === 'qibla')
+  // Kur'an sekmesine dönüşte çalan ayet vurgusu tazelenir
+  quran?.setVisible(name === 'quran')
 }
 for (const v of TABS) {
   document.querySelector(`#tab-${v}`).addEventListener('click', () => showView(v))
@@ -308,7 +311,7 @@ setupSwipe(document.querySelector('#app'), (dir) => {
 })
 
 setupDhikr(document.querySelector('#view-dhikr'))
-setupQuran(document.querySelector('#view-quran'))
+quran = setupQuran(document.querySelector('#view-quran'))
 monthly = setupMonthly(document.querySelector('#view-monthly'), () => location)
 holidays = setupHolidays(document.querySelector('#view-holidays'), () => showView('times'))
 qibla = setupQibla(document.querySelector('#view-qibla'), () => location)
