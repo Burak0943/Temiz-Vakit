@@ -61,6 +61,7 @@ export function setupMonthly(root, getLocation) {
       const th = document.createElement('th')
       th.scope = 'row'
       th.textContent = `${day} ${DAYS_TR[date.getDay()]}`
+      if (date.getDay() === 5) th.classList.add('friday') // Cuma satırı hafif amber
       tr.appendChild(th)
       for (const key of COLS) {
         const td = document.createElement('td')

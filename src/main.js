@@ -13,6 +13,7 @@ import { setupMonthly } from './monthly.js'
 import { setupHolidays, formatHijriDate } from './holidays.js'
 import { setupUpdateBar } from './update.js'
 import { setupQibla } from './qibla.js'
+import { greetingText } from './greeting.js'
 
 const DEFAULT_LOCATION = { lat: 37.845, lon: 27.839, label: 'Aydın (varsayılan)', isDefault: true }
 
@@ -43,6 +44,7 @@ let holidays = null // setupHolidays dönüşü
 let qibla = null // setupQibla dönüşü
 let target = null // { label, time, isTomorrow }
 let renderedDay = ''
+let greetingMinute = -1 // selam satırı dakikada bir, mevcut tick içinde güncellenir
 let lastToday = []
 let lastNext = null
 let prayerData = loadPrayerData()
@@ -51,6 +53,7 @@ document.querySelector('#app').innerHTML = `
   <section id="view-times">
     <header>
       <h1>Temiz Vakit</h1>
+      <p id="greeting"></p>
       <p id="hijri-line"></p>
       <p id="location-line">
         <span id="location-label"></span>
@@ -127,7 +130,9 @@ function renderCountdown(now) {
 }
 
 function renderTimes() {
-  const marks = prayerData[localDateKey(new Date())] || []
+  const now = new Date()
+  const marks = prayerData[localDateKey(now)] || []
+  const isFriday = now.getDay() === 5
   document.querySelector('#times').innerHTML = lastToday
     .map((p) => {
       const isNext = p.key === lastNext.key
@@ -139,10 +144,12 @@ function renderTimes() {
         ? `<button type="button" class="mark${marked ? ' marked' : ''}" data-key="${p.key}"
              aria-pressed="${marked}" aria-label="${p.label} vaktini kıldım olarak işaretle"></button>`
         : '<span class="mark-space"></span>'
+      const badge = isFriday && p.key === 'dhuhr' ? '<span class="fri-badge">Cuma</span>' : ''
       return `
       <li class="${isNext ? 'next' : ''}">
         ${circle}
         <span class="p-label">${label}</span>
+        ${badge}
         <time>${timeFormat.format(shownTime)}</time>
       </li>`
     })
@@ -150,8 +157,13 @@ function renderTimes() {
 }
 
 function renderStreak() {
-  const days = computeStreak(prayerData, new Date())
-  document.querySelector('#streak').textContent = `Seri: ${days} gün`
+  const now = new Date()
+  const done = (prayerData[localDateKey(now)] || []).length
+  const days = computeStreak(prayerData, now)
+  document.querySelector('#streak').textContent =
+    done === TRACKED.length
+      ? `Bugün: ${done}/${TRACKED.length} ✓ · Seri: ${days} gün`
+      : `Bugün: ${done}/${TRACKED.length} vakit · Seri: ${days} gün`
 }
 
 function refresh() {
@@ -162,6 +174,8 @@ function refresh() {
   lastToday = today
   lastNext = next
 
+  document.querySelector('#greeting').textContent = greetingText(now, target)
+  greetingMinute = Math.floor(now.getTime() / 60000)
   document.querySelector('#hijri-line').textContent =
     `${longDateFormat.format(now)} · ${formatHijriDate(now)}`
   document.querySelector('#location-label').textContent = `Konum: ${location.label}`
@@ -186,6 +200,12 @@ function tick() {
     refresh()
   } else {
     renderCountdown(now)
+    // Selam satırı dakikada bir tazelenir (45 dk istisna sınırı için yeterli)
+    const minuteKey = Math.floor(now.getTime() / 60000)
+    if (minuteKey !== greetingMinute) {
+      greetingMinute = minuteKey
+      document.querySelector('#greeting').textContent = greetingText(now, target)
+    }
   }
 }
 

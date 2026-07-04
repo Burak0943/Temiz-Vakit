@@ -37,10 +37,26 @@ header h1 {
   color: var(--text-bright);
 }
 
+#greeting {
+  margin: 0 0 2px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
 #hijri-line {
   margin: 0 0 4px;
   font-size: 14px;
   color: var(--text-dim);
+}
+
+.fri-badge {
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gold);
+  background: rgba(212, 160, 23, 0.15);
+  border-radius: 4px;
+  padding: 1px 6px;
 }
 
 #location-line {
@@ -343,6 +359,10 @@ header h1 {
 
 #month-table tr.today th {
   color: var(--accent);
+}
+
+#month-table tbody th.friday {
+  color: var(--gold);
 }
 
 @media (max-width: 380px) {
