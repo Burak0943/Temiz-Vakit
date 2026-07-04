@@ -226,7 +226,18 @@ export function setupCevsen(container, onNav) {
   container.querySelector('#cv-back').addEventListener('click', () => history.back())
 
   return {
-    openList, // Dualar listesindeki girişten çağrılır
+    openList, // Kitaplık kartından çağrılır
+    // Kitaplık kartı altındaki kompakt devam satırı için
+    getResumeInfo() {
+      const pos = loadPos()
+      if (!pos) return null
+      return { label: `${CEVSEN_SECTIONS[pos.si].ad} · Sayfa ${pos.page}`, si: pos.si, page: pos.page }
+    },
+    openResume() {
+      const pos = loadPos()
+      if (pos) openViewer(pos.si, pos.page)
+      else openList()
+    },
     // --- Geri tuşu entegrasyonu (dhikr.getSub/applySub üzerinden) ---
     // NOT: p bilinçli taşınmaz — sayfa numarası her çevirmede değiştiğinden
     // nav.push tekilleştirmesini kırar (aynı görünüme yinelenen girdi) ve

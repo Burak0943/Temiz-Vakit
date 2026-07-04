@@ -5,7 +5,7 @@
 // Yığın düzeni: [önceki sayfa..., KÖK İŞARETİ, uygulama durumları...]
 // Kök işareti sayfanın açılış girdisinin üzerine replaceState ile yazılır;
 // işarete düşen popstate "kökte geri basıldı" demektir.
-export function setupNav({ getState, apply, isPlayerOpen, closePlayer, showExitHint }) {
+export function setupNav({ getState, apply, onBackIntercept, showExitHint }) {
   const SID = Math.random().toString(36).slice(2) // oturum kimliği: bayat girdiler ayıklanır
   let current = null
   let applying = false // popstate uygularken modüllerin bildirimleri push üretmesin
@@ -33,9 +33,9 @@ export function setupNav({ getState, apply, isPlayerOpen, closePlayer, showExitH
 
   window.addEventListener('popstate', (e) => {
     const st = e.state
-    // 1) Oynatıcı açıksa ilk geri onu kapatır; gezinme iptal edilir
-    if (isPlayerOpen()) {
-      closePlayer()
+    // 1) Araya girme katmanları (açık oynatıcı, karşılama): ilk geriyi
+    // tüketirlerse gezinme iptal edilir, konum geri yüklenir
+    if (onBackIntercept?.()) {
       history.pushState(current, '')
       return
     }

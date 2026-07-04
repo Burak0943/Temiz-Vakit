@@ -671,6 +671,70 @@ header h1 {
   color: var(--text-bright);
 }
 
+/* Kitaplık: iki büyük kitap kartı + kart altı kompakt devam satırı */
+.lib-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 18px 16px;
+  font: inherit;
+  text-align: left;
+  color: var(--text-bright);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.lib-card:hover {
+  background: var(--surface-next);
+}
+
+.lib-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.lib-sub {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.lib-resume {
+  display: block;
+  width: 100%;
+  margin: -4px 0 14px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--gold);
+  background: var(--surface-next);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#library-main h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+#quran-back {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
 #quran-resume,
 #cevsen-resume {
   display: block;
@@ -1096,6 +1160,242 @@ header h1 {
 .ayah-play-label {
   font-size: 12px;
   color: var(--text-dim);
+}
+
+/* Ayarlar dişlisi: başlığın sağ üstü, 44px dokunma alanı */
+#view-times header {
+  position: relative;
+}
+
+#settings-btn {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+#settings-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+/* Ayarlar görünümü */
+#settings-back {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+#view-settings h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+.set-section {
+  margin: 20px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.set-row.set-passive {
+  color: var(--text-dim);
+  background: none;
+}
+
+.set-row button {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.set-stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.set-stepper span {
+  min-width: 24px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.set-stepper button.limit {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.set-link {
+  width: 100%;
+  text-align: left;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.set-about {
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.set-about p {
+  margin: 0 0 8px;
+}
+
+.set-about ul {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+/* İlk giriş karşılaması: tam ekran katman, 3 kart */
+#onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg, #0f1419);
+}
+
+.ob-card {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+
+.ob-card h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  color: var(--text-bright);
+}
+
+.ob-card p {
+  margin: 0 0 10px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.ob-small {
+  font-size: 13px !important;
+  color: var(--text-dim);
+}
+
+#ob-features {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+  text-align: left;
+}
+
+#ob-features li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+#ob-features svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.ob-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 20px 0 16px;
+}
+
+#ob-next,
+#ob-locate,
+#ob-close {
+  min-height: 48px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f1419;
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#ob-skip {
+  min-height: 40px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.ob-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ob-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.ob-dot.active {
+  background: var(--accent);
 }
 
 /* Çift-geri çıkış ipucu: sekme barının üstünde 2 sn'lik kibar çubuk */

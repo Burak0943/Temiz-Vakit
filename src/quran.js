@@ -1,4 +1,5 @@
-// Kur'an sekmesi: sure listesi + ayet ayet okuma ekranı.
+// Kur'an sekmesi: KİTAPLIK girişi (iki kart: Kur'an-ı Kerim + Büyük Cevşen)
+// -> sure listesi -> ayet ayet okuma ekranı; Cevşen modülü de bu sekmede.
 // Tüm metinler quran-api.js üzerinden API'den gelir (içerik kuralı).
 // Ayet kartı (ayah-card.js) ve mini oynatıcı (player.js) Nazar bölümüyle ortaktır.
 import {
@@ -10,6 +11,7 @@ import {
 } from './quran-api.js'
 import { SURAH_NAMES_TR } from './surah-names-tr.js'
 import { createAyahCard } from './ayah-card.js'
+import { setupCevsen } from './cevsen.js'
 
 // Birincil görünen ad Türkçe (kaynak: quran.com v4); dizi dışı kalırsa güvenli geri dönüş
 const trName = (number) => SURAH_NAMES_TR[number - 1] || `Sure ${number}`
@@ -19,9 +21,22 @@ const AR_FONT_STEPS = [22, 26, 30, 34]
 
 export function setupQuran(root, player, onNav) {
   root.innerHTML = `
-    <div id="quran-main">
+    <div id="library-main">
+      <h2>Kitaplık</h2>
+      <button type="button" class="lib-card" id="lib-quran">
+        <span class="lib-title">Kur'an-ı Kerim</span>
+        <span class="lib-sub">114 sure · sesli</span>
+      </button>
+      <button type="button" id="lib-quran-resume" class="lib-resume" hidden></button>
+      <button type="button" class="lib-card" id="lib-cevsen">
+        <span class="lib-title">Büyük Cevşen</span>
+        <span class="lib-sub">Hayrat hat sayfaları</span>
+      </button>
+      <button type="button" id="lib-cevsen-resume" class="lib-resume" hidden></button>
+    </div>
+    <div id="quran-main" hidden>
+      <button type="button" id="quran-back">‹ Geri</button>
       <h2>Kur'an-ı Kerim</h2>
-      <button type="button" id="quran-resume" hidden></button>
       <p id="quran-status" hidden></p>
       <button type="button" id="quran-retry" hidden>Tekrar dene</button>
       <ul id="surah-list"></ul>
@@ -46,10 +61,14 @@ export function setupQuran(root, player, onNav) {
       <div id="qr-ayahs"></div>
       <p class="footnote">Kaynak: AlQuran Cloud · Meal: Diyanet İşleri · Okunuş: Çeviriyazı</p>
     </div>
+    <div id="cevsen-root"></div>
   `
 
+  const libraryEl = root.querySelector('#library-main')
   const main = root.querySelector('#quran-main')
   const reader = root.querySelector('#quran-reader')
+  // Cevşen aynı sekmenin ikinci kitabı: kendi alt-görünümlerini kendisi yönetir
+  const cevsen = setupCevsen(root.querySelector('#cevsen-root'), onNav)
   const ayahsEl = root.querySelector('#qr-ayahs')
   const statusEl = root.querySelector('#quran-status')
   const retryBtn = root.querySelector('#quran-retry')
@@ -98,23 +117,58 @@ export function setupQuran(root, player, onNav) {
   fontMinus.addEventListener('click', () => stepArFont(-1))
   fontPlus.addEventListener('click', () => stepArFont(1))
 
-  // --- Kaldığın yer kartı ---
-  function renderResume() {
-    const btn = root.querySelector('#quran-resume')
+  // --- Kitaplık: kart altı kompakt devam satırları ---
+  function renderLibResumes() {
+    const qbtn = root.querySelector('#lib-quran-resume')
     const pos = getPosition()
-    if (!pos || !surahList) {
-      btn.hidden = true
-      return
+    const s = pos && surahList ? surahList.find((x) => x.number === pos.surah) : null
+    if (s) {
+      qbtn.hidden = false
+      qbtn.textContent = `Devam — ${s.number}. ${trName(s.number)} · Ayet ${pos.ayah} ›`
+      qbtn.onclick = () => openSurah(pos.surah, pos.ayah)
+    } else {
+      qbtn.hidden = true
     }
-    const s = surahList.find((x) => x.number === pos.surah)
-    if (!s) {
-      btn.hidden = true
-      return
+    const cbtn = root.querySelector('#lib-cevsen-resume')
+    const info = cevsen.getResumeInfo()
+    if (info) {
+      cbtn.hidden = false
+      cbtn.textContent = `Devam — ${info.label} ›`
+      cbtn.onclick = () => {
+        libraryEl.hidden = true
+        cevsen.openResume()
+      }
+    } else {
+      cbtn.hidden = true
     }
-    btn.hidden = false
-    btn.textContent = `Kaldığın yerden devam — ${s.number}. ${trName(s.number)} · Ayet ${pos.ayah} ›`
-    btn.onclick = () => openSurah(pos.surah, pos.ayah)
   }
+
+  function showLibrary() {
+    main.hidden = true
+    reader.hidden = true
+    renderLibResumes()
+    libraryEl.hidden = false
+    window.scrollTo(0, 0)
+  }
+
+  function openBook() {
+    // sure listesi görünümü
+    libraryEl.hidden = true
+    reader.hidden = true
+    main.hidden = false
+    window.scrollTo(0, 0)
+  }
+
+  root.querySelector('#lib-quran').addEventListener('click', () => {
+    openBook()
+    onNav?.()
+  })
+  root.querySelector('#lib-cevsen').addEventListener('click', () => {
+    libraryEl.hidden = true
+    cevsen.openList() // onNav'ı kendisi çağırır
+  })
+  // Ekrandaki ‹ Geri = telefonun geri tuşu (yığın senkron kalır)
+  root.querySelector('#quran-back').addEventListener('click', () => history.back())
 
   // --- Sure listesi ---
   async function loadList() {
@@ -158,7 +212,7 @@ export function setupQuran(root, player, onNav) {
       frag.appendChild(li)
     }
     root.querySelector('#surah-list').replaceChildren(frag)
-    renderResume()
+    renderLibResumes()
     markStoredBadges()
   }
   retryBtn.addEventListener('click', loadList)
@@ -181,6 +235,7 @@ export function setupQuran(root, player, onNav) {
 
   async function openSurah(number, targetAyah = null) {
     openSurahNo = number
+    libraryEl.hidden = true // devam kartından doğrudan açılışta kitaplık kapanır
     main.hidden = true
     reader.hidden = false
     onNav?.() // görünüm geçişi history'ye yazılsın (popstate uygularken bastırılır)
@@ -189,6 +244,7 @@ export function setupQuran(root, player, onNav) {
     listenBtn.hidden = true // içerik gelmeden büyük dinle butonu görünmesin
     qrStatus.hidden = false
     qrStatus.textContent = 'Yükleniyor…'
+    arFont = loadArFont() // Ayarlar'dan değişmiş olabilir: her açılışta taze oku
     applyArFont()
     let detail
     try {
@@ -228,13 +284,13 @@ export function setupQuran(root, player, onNav) {
     return 1
   }
 
+  // Okuyucuyu kapatır; hangi görünümün açılacağına ÇAĞIRAN karar verir
+  // (geri = kitaplık ya da sure listesi — history girdisi belirler)
   function closeReader() {
     if (openSurahNo && openDetail) savePosition(openSurahNo, topVisibleAyah())
     openSurahNo = null
     openDetail = null
     reader.hidden = true
-    main.hidden = false
-    renderResume()
     markStoredBadges() // yeni açılan sure cihaza inmiş olabilir
     window.scrollTo(0, 0)
   }
@@ -290,19 +346,39 @@ export function setupQuran(root, player, onNav) {
       if (visible) markPlayingCard()
     },
     // --- Geri tuşu entegrasyonu: alt-görünüm durumu ---
+    // null = kitaplık | {type:'kuran'} = sure listesi | {type:'sure',no} |
+    // {type:'cevsen'} | {type:'cevsen-sayfa',k}
     getSub() {
-      return openSurahNo
+      const c = cevsen.getSub()
+      if (c) return c
+      if (openSurahNo) return { type: 'sure', no: openSurahNo }
+      if (!main.hidden) return { type: 'kuran' }
+      return null
     },
-    applySub(surahNo) {
-      if (surahNo == null) {
+    applySub(sub) {
+      const isCevsen = sub && (sub.type === 'cevsen' || sub.type === 'cevsen-sayfa')
+      if (!isCevsen) cevsen.applySub(null)
+      if (!sub) {
         if (openSurahNo) closeReader()
+        showLibrary()
         return
       }
-      if (openSurahNo !== surahNo) {
-        // İleri gezinmeyle geri açılışta kayıtlı konum korunur; targetAyah'sız
-        // açmak savePosition(n, 1) ile "kaldığın yer"i ezerdi (veri kaybı)
-        const pos = getPosition()
-        openSurah(surahNo, pos && pos.surah === surahNo ? pos.ayah : null)
+      if (sub.type === 'kuran') {
+        if (openSurahNo) closeReader()
+        openBook()
+      } else if (sub.type === 'sure') {
+        if (openSurahNo !== sub.no) {
+          // İleri gezinmeyle geri açılışta kayıtlı konum korunur; targetAyah'sız
+          // açmak savePosition(n, 1) ile "kaldığın yer"i ezerdi (veri kaybı)
+          const pos = getPosition()
+          openSurah(sub.no, pos && pos.surah === sub.no ? pos.ayah : null)
+        }
+      } else {
+        // Cevşen durumları: kitaplık/sure katmanları kapanır
+        if (openSurahNo) closeReader()
+        libraryEl.hidden = true
+        main.hidden = true
+        cevsen.applySub(sub)
       }
     },
   }

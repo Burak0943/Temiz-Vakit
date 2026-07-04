@@ -14,6 +14,8 @@ import { setupHolidays, formatHijriDate, computeEvents, daysLeft } from './holid
 import { setupQuran } from './quran.js'
 import { setupPlayer } from './player.js'
 import { setupNav } from './nav.js'
+import { setupSettings } from './settings.js'
+import { setupOnboarding } from './onboarding.js'
 import { setupEsma, esmaForDate } from './esma.js'
 import { setupServiceWorker } from './update.js'
 import { setupQibla } from './qibla.js'
@@ -50,6 +52,8 @@ let qibla = null // setupQibla dönüşü
 let quran = null // setupQuran dönüşü
 let dhikr = null // setupDhikr dönüşü
 let nav = null // setupNav dönüşü (geri tuşu yönetimi)
+let settings = null // setupSettings dönüşü
+let onboarding = null // setupOnboarding dönüşü
 let target = null // { label, time, isTomorrow }
 let renderedDay = ''
 let greetingMinute = -1 // selam satırı dakikada bir, mevcut tick içinde güncellenir
@@ -61,6 +65,9 @@ document.querySelector('#app').innerHTML = `
   <section id="view-times">
     <header>
       <h1>Temiz Vakit</h1>
+      <button id="settings-btn" type="button" aria-label="Ayarlar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1"/></svg>
+      </button>
       <p id="greeting"></p>
       <p id="hijri-line"></p>
       <p id="location-line">
@@ -97,6 +104,7 @@ document.querySelector('#app').innerHTML = `
   <section id="view-monthly" hidden></section>
   <section id="view-holidays" hidden></section>
   <section id="view-esma" hidden></section>
+  <section id="view-settings" hidden></section>
   <section id="view-dhikr" hidden></section>
   <section id="view-qibla" hidden></section>
   <nav id="tabs">
@@ -232,6 +240,7 @@ function refresh() {
     `${longDateFormat.format(now)} · ${formatHijriDate(now)}`
   document.querySelector('#location-label').textContent = `Konum: ${location.label}`
   document.querySelector('#use-location').hidden = !location.isDefault
+  settings?.renderLocation() // Ayarlar açıksa konum satırı da tazelensin
   document.querySelector('#next-label').textContent =
     `Sıradaki vakit: ${next.label}${next.isTomorrow ? ' (yarın)' : ''}`
 
@@ -319,6 +328,7 @@ function requestLocation() {
           if (location.lat !== latitude || location.lon !== longitude) return
           location = { ...location, label: name }
           document.querySelector('#location-label').textContent = `Konum: ${name}`
+          settings?.renderLocation()
         })
         .catch(() => {
           // sessiz geri dönüş: koordinat gösterimi zaten ekranda
@@ -346,7 +356,7 @@ document.querySelector('#times').addEventListener('click', (e) => {
 // Sekmeler: sayfa yenilenmeden görünüm değişimi.
 // 'holidays' sekmesiz alt-görünümdür: Vakitler'deki karttan açılır.
 const TABS = ['times', 'quran', 'monthly', 'dhikr', 'qibla']
-const VIEWS = [...TABS, 'holidays', 'esma']
+const VIEWS = [...TABS, 'holidays', 'esma', 'settings']
 let currentView = 'times'
 function showView(name) {
   currentView = name
@@ -366,6 +376,8 @@ function showView(name) {
   qibla?.setVisible(name === 'qibla')
   // Kur'an sekmesine dönüşte çalan ayet vurgusu tazelenir
   quran?.setVisible(name === 'quran')
+  // Ayarlar her açılışta canlı değerlerle tazelenir
+  if (name === 'settings') settings?.render()
 }
 // Kullanıcı eylemiyle görünüm geçişi: render + history kaydı bir arada.
 // (showView salt render'dır; popstate geri yüklemesi de onu kullanır.)
@@ -407,6 +419,19 @@ exitToast.hidden = true
 document.body.appendChild(exitToast)
 let exitToastTimer = null
 
+// Karşılama ve Ayarlar (nav'dan önce: onBackIntercept karşılamayı tanısın)
+onboarding = setupOnboarding({
+  requestLocation,
+  getLocationLabel: () => location.label,
+})
+settings = setupSettings(document.querySelector('#view-settings'), {
+  getLocationLabel: () => `Konum: ${location.label}`,
+  updateLocation: requestLocation,
+  showOnboarding: () => onboarding.show(true),
+  onBack: () => history.back(),
+})
+document.querySelector('#settings-btn').addEventListener('click', () => goView('settings'))
+
 nav = setupNav({
   // Durum anlık görüntüsü: sekme + modül içi alt-görünümler birlikte saklanır,
   // geri dönüşte okuyucular da kaldıkları hâle döner
@@ -416,9 +441,16 @@ nav = setupNav({
     quran.applySub(st.q ?? null)
     dhikr.applySub(st.d ?? null)
   },
-  // Karar: oynatıcı açıkken ilk geri basış oynatıcıyı kapatır, gezinmez
-  isPlayerOpen: () => player.isOpen(),
-  closePlayer: () => player.stop(),
+  // Katman öncelikleri: karşılama kart geriletir (ilk kartta no-op),
+  // sonra açık oynatıcı kapanır; ikisi de gezinmeyi tüketir
+  onBackIntercept() {
+    if (onboarding.isOpen()) return onboarding.back()
+    if (player.isOpen()) {
+      player.stop()
+      return true
+    }
+    return false
+  },
   showExitHint() {
     exitToast.hidden = false
     clearTimeout(exitToastTimer)
@@ -428,6 +460,7 @@ nav = setupNav({
   },
 })
 nav.init()
+onboarding.maybeShowFirstRun()
 
 // Diyanet ile karşılaştırma için: bugünün Aydın (varsayılan) vakitleri
 console.table(

@@ -6,7 +6,6 @@ import { PRAYERS_DATA } from './prayers-data.js'
 import { getSurahDetail } from './quran-api.js'
 import { createAyahCard } from './ayah-card.js'
 import { SURAH_NAMES_TR } from './surah-names-tr.js'
-import { setupCevsen } from './cevsen.js'
 
 const STORAGE_KEY = 'tv_dhikr'
 const TARGETS = [33, 99, 0]
@@ -84,7 +83,6 @@ export function setupDhikr(root, player, onNav) {
       <div id="nazar-body"></div>
       <p class="footnote">Kaynak: AlQuran Cloud · Meal: Diyanet İşleri · Okunuş: Çeviriyazı</p>
     </div>
-    <div id="cevsen-root"></div>
   `
 
   const pad = root.querySelector('#dhikr-pad')
@@ -277,6 +275,7 @@ export function setupDhikr(root, player, onNav) {
     root.querySelector('#reader-source').textContent = `Kaynak: ${p.kaynak}`
     main.hidden = true
     reader.hidden = false
+    fontSize = loadFontSize() // Ayarlar'dan değişmiş olabilir: her açılışta taze oku
     applyFont()
     openId = p.id
     onNav?.() // openId atandıktan SONRA: history anlık görüntüsü duayı içersin
@@ -430,22 +429,6 @@ export function setupDhikr(root, player, onNav) {
   nazarLi.appendChild(nazarBtn)
   list.appendChild(nazarLi)
 
-  // ---- Cevşen: Hayrat hat sayfası görüntüleyicisi (cevsen.js) ----
-  const cevsen = setupCevsen(root.querySelector('#cevsen-root'), onNav)
-  let cevsenMainScrollY = 0
-  function openCevsen() {
-    cevsenMainScrollY = window.scrollY
-    main.hidden = true
-    cevsen.openList()
-  }
-  const cevsenLi = document.createElement('li')
-  const cevsenBtn = document.createElement('button')
-  cevsenBtn.type = 'button'
-  cevsenBtn.textContent = 'Cevşen (Büyük Cevşen)'
-  cevsenBtn.addEventListener('click', openCevsen)
-  cevsenLi.appendChild(cevsenBtn)
-  list.appendChild(cevsenLi)
-
   render()
 
   return {
@@ -453,30 +436,23 @@ export function setupDhikr(root, player, onNav) {
     getSub() {
       if (openId) return { type: 'dua', id: openId }
       if (!nazarEl.hidden) return { type: 'nazar' }
-      return cevsen.getSub() // null | cevsen | cevsen-sayfa
+      return null
     },
     applySub(sub) {
-      const isCevsen = sub && (sub.type === 'cevsen' || sub.type === 'cevsen-sayfa')
-      const cevsenWasOpen = cevsen.getSub() !== null
-      // Hedef durumda OLMAYAN alt-görünümler kapanır (karşılıklı dışlama)
-      if (sub?.type !== 'dua' && openId) closeReader()
-      if (sub?.type !== 'nazar' && !nazarEl.hidden) closeNazar()
-      if (!isCevsen && cevsenWasOpen) cevsen.applySub(null)
       if (!sub) {
-        main.hidden = false
-        if (cevsenWasOpen) window.scrollTo(0, cevsenMainScrollY)
+        if (openId) closeReader()
+        if (!nazarEl.hidden) closeNazar()
         return
       }
       if (sub.type === 'dua') {
+        if (!nazarEl.hidden) closeNazar()
         if (openId !== sub.id) {
           const p = PRAYERS_DATA.find((x) => x.id === sub.id)
           if (p) openPrayer(p)
         }
       } else if (sub.type === 'nazar') {
+        if (openId) closeReader()
         if (nazarEl.hidden) openNazar()
-      } else {
-        main.hidden = true
-        cevsen.applySub(sub)
       }
     },
   }
