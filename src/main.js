@@ -9,6 +9,7 @@ import {
   computeStreak,
 } from './tracking.js'
 import { setupDhikr } from './dhikr.js'
+import { setupMonthly } from './monthly.js'
 
 const DEFAULT_LOCATION = { lat: 37.845, lon: 27.839, label: 'Aydın (varsayılan)', isDefault: true }
 
@@ -28,6 +29,7 @@ const timeFormat = new Intl.DateTimeFormat('tr-TR', {
 })
 
 let location = DEFAULT_LOCATION
+let monthly = null // setupMonthly dönüşü; refresh monthly'den önce koşabilir
 let target = null // { label, time, isTomorrow }
 let renderedDay = ''
 let lastToday = []
@@ -51,9 +53,11 @@ document.querySelector('#app').innerHTML = `
     <ul id="times"></ul>
     <p id="streak"></p>
   </section>
+  <section id="view-monthly" hidden></section>
   <section id="view-dhikr" hidden></section>
   <nav id="tabs">
-    <button id="tab-times" type="button" class="active">Vakitler</button>
+    <button id="tab-times" type="button" class="active" aria-current="page">Vakitler</button>
+    <button id="tab-monthly" type="button">Aylık</button>
     <button id="tab-dhikr" type="button">Zikir</button>
   </nav>
 `
@@ -134,6 +138,8 @@ function refresh() {
   renderTimes()
   renderStreak()
   renderCountdown(now)
+  // Konum değişimi ve gece yarısı geçişinde aylık tablo da tazelensin
+  monthly?.render()
 }
 
 function tick() {
@@ -183,16 +189,24 @@ document.querySelector('#times').addEventListener('click', (e) => {
 })
 
 // Sekmeler: sayfa yenilenmeden görünüm değişimi
+const VIEWS = ['times', 'monthly', 'dhikr']
 function showView(name) {
-  document.querySelector('#view-times').hidden = name !== 'times'
-  document.querySelector('#view-dhikr').hidden = name !== 'dhikr'
-  document.querySelector('#tab-times').classList.toggle('active', name === 'times')
-  document.querySelector('#tab-dhikr').classList.toggle('active', name === 'dhikr')
+  for (const v of VIEWS) {
+    document.querySelector(`#view-${v}`).hidden = v !== name
+    const tab = document.querySelector(`#tab-${v}`)
+    tab.classList.toggle('active', v === name)
+    if (v === name) tab.setAttribute('aria-current', 'page')
+    else tab.removeAttribute('aria-current')
+  }
+  // scrollIntoView gizli öğede çalışmadığından görünüm açıldıktan sonra
+  if (name === 'monthly') monthly?.scrollToToday()
 }
-document.querySelector('#tab-times').addEventListener('click', () => showView('times'))
-document.querySelector('#tab-dhikr').addEventListener('click', () => showView('dhikr'))
+for (const v of VIEWS) {
+  document.querySelector(`#tab-${v}`).addEventListener('click', () => showView(v))
+}
 
 setupDhikr(document.querySelector('#view-dhikr'))
+monthly = setupMonthly(document.querySelector('#view-monthly'), () => location)
 
 // Diyanet ile karşılaştırma için: bugünün Aydın (varsayılan) vakitleri
 console.table(
