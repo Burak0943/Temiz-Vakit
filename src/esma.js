@@ -23,7 +23,7 @@ export function setupEsma(root, onBack) {
     <button type="button" id="esma-back">‹ Geri</button>
     <h2>Esmaül Hüsna</h2>
     <ul id="esma-list"></ul>
-    <p class="footnote">Kaynak: AlAdhan API (Islamic Network). Türkçe anlamlar resmî kaynak doğrulaması sonrası eklenecektir.</p>
+    <p class="footnote">Adlar ve anlamlar: suresioku.com Esmaül Hüsna listesi (67. isim hariç) · Arapça ve 67. isim: AlAdhan API</p>
   `
   if (onBack) root.querySelector('#esma-back').addEventListener('click', onBack)
 
@@ -42,12 +42,11 @@ export function setupEsma(root, onBack) {
     ar.lang = 'ar'
     ar.textContent = e.arapca
     li.append(no, latin, ar)
-    if (e.anlam) {
-      const anlam = document.createElement('span')
-      anlam.className = 'e-anlam'
-      anlam.textContent = e.anlam
-      li.appendChild(anlam)
-    }
+    const anlam = document.createElement('span')
+    anlam.className = 'e-anlam'
+    // Kaynakta bulunmayan girdi için açıklayıcı not — anlam uydurulmaz
+    anlam.textContent = e.anlam || 'Bu ismin anlamı kaynak listede bulunmuyor.'
+    li.appendChild(anlam)
     frag.appendChild(li)
   }
   root.querySelector('#esma-list').replaceChildren(frag)

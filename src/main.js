@@ -190,8 +190,9 @@ function renderEsmaCard(now) {
   document.querySelector('#ec-latin').textContent = e.latin
   document.querySelector('#ec-arabic').textContent = e.arapca
   const anlamEl = document.querySelector('#ec-anlam')
-  anlamEl.hidden = !e.anlam
-  anlamEl.textContent = e.anlam || ''
+  anlamEl.hidden = false
+  // Kaynak listede bulunmayan tek girdi (67) için açıklayıcı not — anlam uydurulmaz
+  anlamEl.textContent = e.anlam || 'Bu ismin anlamı kaynak listede bulunmuyor.'
 }
 
 // Vakitler altındaki kompakt "yaklaşan dini gün" kartı (tam liste alt-görünümde)
