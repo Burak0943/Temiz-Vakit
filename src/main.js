@@ -77,11 +77,15 @@ document.querySelector('#app').innerHTML = `
       <span class="hc-more">Tümü ›</span>
     </button>
     <button id="esma-card" type="button">
-      <span class="ec-label">Günün Esması</span>
-      <span id="ec-latin"></span>
-      <span id="ec-arabic" dir="rtl" lang="ar"></span>
+      <span class="ec-top">
+        <span class="ec-label">Günün Esması</span>
+        <span class="hc-more">Tümü ›</span>
+      </span>
+      <span class="ec-name">
+        <span id="ec-latin"></span>
+        <span id="ec-arabic" dir="rtl" lang="ar"></span>
+      </span>
       <span id="ec-anlam" hidden></span>
-      <span class="hc-more">Tümü ›</span>
     </button>
     <p class="footnote">Vakitler astronomik hesapla üretilir; Diyanet takviminden ±1 dk farkedebilir.</p>
   </section>

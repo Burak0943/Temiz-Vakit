@@ -531,11 +531,13 @@ header h1 {
   cursor: pointer;
 }
 
-/* Günün Esması kartı: üstte etiket+bağlantı, ortada ad+Arapça, altta anlam */
+/* Günün Esması kartı: üstte etiket+bağlantı tek hizada, altında ad + hemen
+   yanında Arapça hat (aynı satır, dikey ortalı), en altta anlam tam genişlikte.
+   Dini gün kartıyla aynı iç boşluk/köşe ritmi. */
 #esma-card {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   width: 100%;
   margin-top: 10px;
   padding: 11px 14px;
@@ -549,15 +551,23 @@ header h1 {
   text-align: left;
 }
 
+.ec-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .ec-label {
   font-size: 11px;
   color: var(--text-dim);
 }
 
-#esma-card .hc-more {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: end;
+.ec-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap; /* uzun ad + hat sığmazsa üst üste binmeden alt satıra iner */
+  min-height: 28px; /* Arapça hat olsun olmasın kart yüksekliği zıplamasın */
 }
 
 #ec-latin {
@@ -566,16 +576,13 @@ header h1 {
 }
 
 #ec-arabic {
-  grid-column: 2;
-  grid-row: 2;
   font-family: 'Amiri Quran', serif;
-  font-size: 18px;
+  font-size: 20px;
+  line-height: 1; /* Amiri'nin yüksek çıkıntıları satırı itmesin */
   color: var(--gold);
-  text-align: right;
 }
 
 #ec-anlam {
-  grid-column: 1 / -1;
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--text-dim);
