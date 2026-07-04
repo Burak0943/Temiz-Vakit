@@ -17,19 +17,35 @@ export function setupUpdateBar() {
   `
   document.body.appendChild(bar)
 
+  function forceReload() {
+    if (reloaded) return
+    reloaded = true
+    window.location.reload()
+  }
+
+  // Yenile: bayat closure referansı yerine tıklama ANINDA kayıttan taze
+  // reg.waiting okunur; bekleyen yoksa düz reload. Mesaj herhangi bir nedenle
+  // işlenmezse (ör. WebKit'in uykudaki worker'a teslim aksaklıkları) 3 sn
+  // içinde controllerchange gelmediğinde güvenlik ağı zorla yeniler.
+  async function activateUpdate() {
+    userInitiated = true
+    const reg = await navigator.serviceWorker.getRegistration()
+    const waiting = reg?.waiting
+    if (!waiting) {
+      forceReload() // başka istemci geçirmiş ya da referans bayat
+      return
+    }
+    waiting.postMessage({ type: 'SKIP_WAITING' })
+    setTimeout(forceReload, 3000)
+  }
+
   function showBar(waitingWorker) {
     if (dismissed || !waitingWorker) return
     // Sekme barı yazı ölçeklemeyle büyüyebilir; şerit tam üstüne otursun
     const tabs = document.querySelector('#tabs')
     if (tabs) bar.style.bottom = `${Math.ceil(tabs.getBoundingClientRect().height)}px`
     bar.hidden = false
-    bar.querySelector('#update-reload').onclick = () => {
-      userInitiated = true
-      // Başka bir sekme geçişi zaten onayladıysa worker beklemede değildir;
-      // mesaj no-op olur, doğrudan yenilemek yeterli
-      if (waitingWorker.state === 'installed') waitingWorker.postMessage({ type: 'SKIP_WAITING' })
-      else window.location.reload()
-    }
+    bar.querySelector('#update-reload').onclick = activateUpdate
   }
 
   bar.querySelector('#update-close').addEventListener('click', () => {
@@ -45,27 +61,27 @@ export function setupUpdateBar() {
       bar.hidden = true
       return
     }
-    if (reloaded) return
-    reloaded = true
-    window.location.reload()
+    forceReload()
   })
 
   window.addEventListener('load', async () => {
     const reg = await navigator.serviceWorker.register('/sw.js')
 
-    // Önceki oturumdan bekleyen sürüm varsa hemen bildir
-    if (reg.waiting && navigator.serviceWorker.controller) showBar(reg.waiting)
-
-    reg.addEventListener('updatefound', () => {
-      const incoming = reg.installing
-      if (!incoming) return
-      incoming.addEventListener('statechange', () => {
+    function watchIncoming(worker) {
+      if (!worker) return
+      worker.addEventListener('statechange', () => {
         // controller varlığı bunun güncelleme olduğunu gösterir (ilk kurulum değil)
-        if (incoming.state === 'installed' && navigator.serviceWorker.controller) {
-          showBar(reg.waiting || incoming)
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          showBar(reg.waiting || worker)
         }
       })
-    })
+    }
+
+    // Önceki oturumdan bekleyen sürüm varsa hemen bildir
+    if (reg.waiting && navigator.serviceWorker.controller) showBar(reg.waiting)
+    // register() çözülmeden updatefound ateşlendiyse kurulmakta olanı da izle
+    watchIncoming(reg.installing)
+    reg.addEventListener('updatefound', () => watchIncoming(reg.installing))
 
     // Sayfa yeniden görünür olunca güncelleme kontrolü — en fazla saatte bir
     let lastCheck = Date.now()
