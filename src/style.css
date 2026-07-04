@@ -459,58 +459,6 @@ header h1 {
   color: var(--text-dim);
 }
 
-/* Güncelleme şeridi: sekme barının hemen üstünde, içerik akışını itmez */
-#update-bar {
-  position: fixed;
-  bottom: 57px;
-  left: 0;
-  right: 0;
-  max-width: 480px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 40px;
-  padding: 6px 8px 6px 14px;
-  background: var(--surface-next);
-  border: 1px solid var(--border);
-  border-bottom: none;
-  border-radius: 10px 10px 0 0;
-  font-size: 14px;
-  z-index: 10;
-}
-
-#update-bar span {
-  flex: 1;
-}
-
-#update-reload {
-  font: inherit;
-  font-weight: 600;
-  color: var(--bg);
-  background: var(--gold);
-  border: none;
-  border-radius: 7px;
-  padding: 5px 14px;
-  cursor: pointer;
-}
-
-#update-reload:disabled {
-  opacity: 0.7;
-  cursor: default;
-}
-
-#update-close {
-  font: inherit;
-  font-size: 18px;
-  line-height: 1;
-  color: var(--text-dim);
-  background: none;
-  border: none;
-  padding: 5px 8px;
-  cursor: pointer;
-}
-
 /* Alt sekme çubuğu */
 #tabs {
   position: fixed;

@@ -11,7 +11,7 @@ import {
 import { setupDhikr } from './dhikr.js'
 import { setupMonthly } from './monthly.js'
 import { setupHolidays, formatHijriDate } from './holidays.js'
-import { setupUpdateBar } from './update.js'
+import { setupServiceWorker } from './update.js'
 import { setupQibla } from './qibla.js'
 import { greetingText } from './greeting.js'
 
@@ -283,5 +283,5 @@ refresh()
 requestLocation()
 setInterval(tick, 1000)
 
-// SW kaydı + güncelleme şeridi (yalnızca production'da; dev'de HMR bayatlar)
-setupUpdateBar()
+// SW kaydı + arka plan güncelleme kontrolü (yalnızca production'da)
+setupServiceWorker()
