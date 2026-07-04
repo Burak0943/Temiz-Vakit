@@ -1,3 +1,9 @@
+@font-face {
+  font-family: 'Amiri Quran';
+  src: url('/fonts/amiri-quran.woff2') format('woff2');
+  font-display: swap;
+}
+
 :root {
   --bg: #0f1419;
   --surface: #161d26;
@@ -13,6 +19,11 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* Author display kuralları (block/flex) UA'nın [hidden] kuralını ezmesin */
+[hidden] {
+  display: none !important;
 }
 
 body {
@@ -473,6 +484,238 @@ header h1 {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   color: var(--text-dim);
+}
+
+/* Yaklaşan dini gün kartı (Vakitler altı) */
+#holiday-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px 14px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+#hc-name {
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+#hc-when {
+  flex: 1;
+  color: var(--text-dim);
+}
+
+.hc-more {
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+#holidays-back {
+  margin-bottom: 12px;
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+/* Kur'an: sure listesi */
+#quran-main h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+#quran-resume {
+  display: block;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  color: var(--gold);
+  background: var(--surface-next);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#quran-status,
+#qr-status {
+  margin: 10px 0;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+#quran-retry {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+#surah-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#surah-list li {
+  border-bottom: 1px solid var(--border);
+}
+
+#surah-list li:last-child {
+  border-bottom: none;
+}
+
+#surah-list button {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+#surah-list button:hover {
+  background: var(--surface-next);
+}
+
+.s-no {
+  min-width: 26px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.s-name {
+  flex: 1;
+  color: var(--text-bright);
+  font-weight: 500;
+}
+
+.s-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* Kur'an: okuma ekranı */
+#qr-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+#qr-back {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+#qr-tools {
+  display: flex;
+  gap: 6px;
+}
+
+#qr-jump {
+  width: 64px;
+  padding: 4px 8px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+#qr-tools button {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+#qr-tools button.limit {
+  opacity: 0.4;
+  cursor: default;
+}
+
+#qr-title {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+.ayah-card {
+  padding: 16px 16px 10px;
+  margin-bottom: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.ayah-ar {
+  margin: 0 0 12px;
+  font-family: 'Amiri Quran', serif;
+  font-size: var(--ar-size, 26px);
+  line-height: 2;
+  color: var(--text-bright);
+  text-align: right;
+}
+
+.ayah-tl {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.ayah-meal {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.ayah-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Alt sekme çubuğu */

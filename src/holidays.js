@@ -90,8 +90,9 @@ function leftLabel(days) {
   return days === 0 ? 'Bugün' : `${days} gün kaldı`
 }
 
-export function setupHolidays(root) {
+export function setupHolidays(root, onBack) {
   root.innerHTML = `
+    <button type="button" id="holidays-back">‹ Geri</button>
     <h2>Dini Günler</h2>
     <div id="next-holiday">
       <p id="nh-name"></p>
@@ -101,6 +102,8 @@ export function setupHolidays(root) {
     <ul id="holiday-list"></ul>
     <p class="footnote">Dini gün tarihleri hicri hesaba dayanır; Diyanet duyurusuyla 1 gün farkedebilir.</p>
   `
+
+  if (onBack) root.querySelector('#holidays-back').addEventListener('click', onBack)
 
   function render() {
     const events = computeEvents()

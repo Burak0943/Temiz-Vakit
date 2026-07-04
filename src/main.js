@@ -10,7 +10,8 @@ import {
 } from './tracking.js'
 import { setupDhikr } from './dhikr.js'
 import { setupMonthly } from './monthly.js'
-import { setupHolidays, formatHijriDate } from './holidays.js'
+import { setupHolidays, formatHijriDate, computeEvents, daysLeft } from './holidays.js'
+import { setupQuran } from './quran.js'
 import { setupServiceWorker } from './update.js'
 import { setupQibla } from './qibla.js'
 import { greetingText } from './greeting.js'
@@ -68,8 +69,14 @@ document.querySelector('#app').innerHTML = `
     </section>
     <ul id="times"></ul>
     <p id="streak"></p>
+    <button id="holiday-card" type="button" hidden>
+      <span id="hc-name"></span>
+      <span id="hc-when"></span>
+      <span class="hc-more">Tümü ›</span>
+    </button>
     <p class="footnote">Vakitler astronomik hesapla üretilir; Diyanet takviminden ±1 dk farkedebilir.</p>
   </section>
+  <section id="view-quran" hidden></section>
   <section id="view-monthly" hidden></section>
   <section id="view-holidays" hidden></section>
   <section id="view-dhikr" hidden></section>
@@ -79,13 +86,13 @@ document.querySelector('#app').innerHTML = `
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
       <span>Vakitler</span>
     </button>
+    <button id="tab-quran" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v17H6a2 2 0 0 0-2 2z"/><path d="M4 20V5M9 7h6"/></svg>
+      <span>Kur'an</span>
+    </button>
     <button id="tab-monthly" type="button">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg>
       <span>Aylık</span>
-    </button>
-    <button id="tab-holidays" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-      <span>Günler</span>
     </button>
     <button id="tab-dhikr" type="button">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.5"/><circle cx="6.5" cy="15.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/></svg>
@@ -167,6 +174,21 @@ function renderStreak() {
       : `Bugün: ${done}/${TRACKED.length} vakit · Seri: ${days} gün`
 }
 
+// Vakitler altındaki kompakt "yaklaşan dini gün" kartı (tam liste alt-görünümde)
+function renderHolidayCard(now) {
+  const next = computeEvents(now)[0]
+  const card = document.querySelector('#holiday-card')
+  if (!next) {
+    card.hidden = true
+    return
+  }
+  card.hidden = false
+  const days = daysLeft(next.date, now)
+  document.querySelector('#hc-name').textContent = next.name
+  document.querySelector('#hc-when').textContent =
+    days === 0 ? 'Bugün' : `${next.date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} · ${days} gün`
+}
+
 function refresh() {
   const now = new Date()
   const { today, next } = findNext(now)
@@ -186,6 +208,7 @@ function refresh() {
 
   renderTimes()
   renderStreak()
+  renderHolidayCard(now)
   renderCountdown(now)
   // Konum değişimi ve gece yarısı geçişinde aylık tablo da tazelensin
   monthly?.render()
@@ -247,16 +270,21 @@ document.querySelector('#times').addEventListener('click', (e) => {
   renderStreak()
 })
 
-// Sekmeler: sayfa yenilenmeden görünüm değişimi
-const VIEWS = ['times', 'monthly', 'holidays', 'dhikr', 'qibla']
+// Sekmeler: sayfa yenilenmeden görünüm değişimi.
+// 'holidays' sekmesiz alt-görünümdür: Vakitler'deki karttan açılır.
+const TABS = ['times', 'quran', 'monthly', 'dhikr', 'qibla']
+const VIEWS = [...TABS, 'holidays']
 let currentView = 'times'
 function showView(name) {
   currentView = name
+  const activeTab = TABS.includes(name) ? name : 'times' // holidays, Vakitler'e bağlı
   for (const v of VIEWS) {
     document.querySelector(`#view-${v}`).hidden = v !== name
+  }
+  for (const v of TABS) {
     const tab = document.querySelector(`#tab-${v}`)
-    tab.classList.toggle('active', v === name)
-    if (v === name) tab.setAttribute('aria-current', 'page')
+    tab.classList.toggle('active', v === activeTab)
+    if (v === activeTab) tab.setAttribute('aria-current', 'page')
     else tab.removeAttribute('aria-current')
   }
   // scrollIntoView gizli öğede çalışmadığından görünüm açıldıktan sonra
@@ -264,20 +292,25 @@ function showView(name) {
   // Kıble sekmesi: açılınca sensör akışı başlar, ayrılınca durur
   qibla?.setVisible(name === 'qibla')
 }
-for (const v of VIEWS) {
+for (const v of TABS) {
   document.querySelector(`#tab-${v}`).addEventListener('click', () => showView(v))
 }
+document.querySelector('#holiday-card').addEventListener('click', () => showView('holidays'))
 
-// Yatay swipe ile sekme değişimi: sola = sonraki, sağa = önceki; uçlarda sarma yok
+// Yatay swipe ile sekme değişimi: sola = sonraki, sağa = önceki; uçlarda sarma yok.
+// Alt-görünümlerde (holidays) swipe sekme döngüsüne karışmaz.
 setupSwipe(document.querySelector('#app'), (dir) => {
-  const idx = VIEWS.indexOf(currentView) + dir
-  if (idx < 0 || idx >= VIEWS.length) return
-  showView(VIEWS[idx])
+  const cur = TABS.indexOf(currentView)
+  if (cur === -1) return
+  const idx = cur + dir
+  if (idx < 0 || idx >= TABS.length) return
+  showView(TABS[idx])
 })
 
 setupDhikr(document.querySelector('#view-dhikr'))
+setupQuran(document.querySelector('#view-quran'))
 monthly = setupMonthly(document.querySelector('#view-monthly'), () => location)
-holidays = setupHolidays(document.querySelector('#view-holidays'))
+holidays = setupHolidays(document.querySelector('#view-holidays'), () => showView('times'))
 qibla = setupQibla(document.querySelector('#view-qibla'), () => location)
 
 // Diyanet ile karşılaştırma için: bugünün Aydın (varsayılan) vakitleri

@@ -1,6 +1,6 @@
 // Temiz Vakit service worker — app shell önbelleği, cache-first.
 // Vakit hesabı adhan ile tamamen yerel; uygulamanın ağ bağımlılığı yok.
-const CACHE = 'tv-v13'
+const CACHE = 'tv-v14'
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -10,6 +10,7 @@ const APP_SHELL = [
   '/icon-512.png',
   '/apple-touch-icon.png',
   '/favicon.svg',
+  '/fonts/amiri-quran.woff2',
 ]
 
 // Yanıtı yeniden sararak saklar: redirect'li yanıt navigasyonda network error
