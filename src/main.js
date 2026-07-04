@@ -10,8 +10,9 @@ import {
 } from './tracking.js'
 import { setupDhikr } from './dhikr.js'
 import { setupMonthly } from './monthly.js'
-import { setupHolidays } from './holidays.js'
+import { setupHolidays, formatHijriDate } from './holidays.js'
 import { setupUpdateBar } from './update.js'
+import { setupQibla } from './qibla.js'
 
 const DEFAULT_LOCATION = { lat: 37.845, lon: 27.839, label: 'Aydın (varsayılan)', isDefault: true }
 
@@ -30,9 +31,16 @@ const timeFormat = new Intl.DateTimeFormat('tr-TR', {
   hour12: false,
 })
 
+const longDateFormat = new Intl.DateTimeFormat('tr-TR', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+})
+
 let location = DEFAULT_LOCATION
 let monthly = null // setupMonthly dönüşü; refresh monthly'den önce koşabilir
 let holidays = null // setupHolidays dönüşü
+let qibla = null // setupQibla dönüşü
 let target = null // { label, time, isTomorrow }
 let renderedDay = ''
 let lastToday = []
@@ -43,9 +51,11 @@ document.querySelector('#app').innerHTML = `
   <section id="view-times">
     <header>
       <h1>Temiz Vakit</h1>
+      <p id="hijri-line"></p>
       <p id="location-line">
         <span id="location-label"></span>
         <button id="use-location" type="button">Konumu Kullan</button>
+        <button id="qibla-open" type="button">Kıble</button>
         <span id="location-note"></span>
       </p>
     </header>
@@ -136,6 +146,8 @@ function refresh() {
   lastToday = today
   lastNext = next
 
+  document.querySelector('#hijri-line').textContent =
+    `${longDateFormat.format(now)} · ${formatHijriDate(now)}`
   document.querySelector('#location-label').textContent = `Konum: ${location.label}`
   document.querySelector('#use-location').hidden = !location.isDefault
   document.querySelector('#next-label').textContent =
@@ -148,6 +160,8 @@ function refresh() {
   monthly?.render()
   // Gece yarısı geçişinde "X gün kaldı" etiketleri tazelensin
   holidays?.render()
+  // Konum değiştiyse açık kıble overlay'inin açısı tazelensin
+  qibla?.locationChanged()
 }
 
 function tick() {
@@ -216,6 +230,7 @@ for (const v of VIEWS) {
 setupDhikr(document.querySelector('#view-dhikr'))
 monthly = setupMonthly(document.querySelector('#view-monthly'), () => location)
 holidays = setupHolidays(document.querySelector('#view-holidays'))
+qibla = setupQibla(document.querySelector('#qibla-open'), () => location)
 
 // Diyanet ile karşılaştırma için: bugünün Aydın (varsayılan) vakitleri
 console.table(

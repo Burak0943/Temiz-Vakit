@@ -34,6 +34,19 @@ export function toHijri(date) {
   return { day: num('day'), month: num('month'), year: num('year') }
 }
 
+// tr locale CLDR'ı hicri ay adlarını Türkçe verir (Muharrem, Safer, ...)
+const hijriDisplayFormat = new Intl.DateTimeFormat('tr-u-ca-islamic-umalqura', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+})
+
+export function formatHijriDate(date) {
+  const parts = hijriDisplayFormat.formatToParts(date)
+  const get = (type) => parts.find((p) => p.type === type)?.value ?? ''
+  return `${get('day')} ${get('month')} ${get('year')}` // "Hicri" era öneki atlanır
+}
+
 // from gününden 24 ay ilerisine kadar dini günler, kronolojik.
 // Geriye 15 günlük pay: ay başı çapaları (ör. Regaib için 1 Recep) geçmişte
 // kalsa da türetilen gün bugünden sonraysa listeye girer.

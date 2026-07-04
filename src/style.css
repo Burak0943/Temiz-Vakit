@@ -37,6 +37,12 @@ header h1 {
   color: var(--text-bright);
 }
 
+#hijri-line {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
 #location-line {
   margin: 0;
   font-size: 14px;
@@ -59,6 +65,158 @@ header h1 {
 
 #use-location:hover {
   border-color: var(--accent);
+}
+
+#qibla-open {
+  font: inherit;
+  color: var(--gold);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+#qibla-open:hover {
+  border-color: var(--gold);
+}
+
+/* Kıble pusulası overlay'i */
+/* Eski motorlarda UA'nın [hidden] kuralı !important değildir; display:flex
+   onu ezmesin diye gizli durum açıkça tanımlanır */
+#qibla-overlay[hidden] {
+  display: none;
+}
+
+#qibla-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 56px 24px 24px;
+  text-align: center;
+}
+
+#qibla-overlay h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+#qibla-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font: inherit;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+#qibla-angle {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text);
+}
+
+#qibla-compass {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.q-mark {
+  position: absolute;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.q-n {
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-bright);
+  font-weight: 600;
+}
+
+.q-s {
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.q-e {
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.q-w {
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+#qibla-arrow {
+  position: absolute;
+  inset: 0;
+}
+
+#qibla-arrow::before {
+  content: '';
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 13px solid transparent;
+  border-top: none;
+  border-bottom: 88px solid var(--text-bright);
+}
+
+#qibla-arrow::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--border);
+}
+
+#qibla-arrow.aligned::before {
+  border-bottom-color: var(--gold);
+}
+
+#qibla-start {
+  font: inherit;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--gold);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  cursor: pointer;
+}
+
+#qibla-status {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-dim);
+  max-width: 320px;
 }
 
 #countdown-box {
