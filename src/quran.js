@@ -17,7 +17,7 @@ const trName = (number) => SURAH_NAMES_TR[number - 1] || `Sure ${number}`
 const AR_FONT_KEY = 'tv_arfontsize'
 const AR_FONT_STEPS = [22, 26, 30, 34]
 
-export function setupQuran(root, player) {
+export function setupQuran(root, player, onNav) {
   root.innerHTML = `
     <div id="quran-main">
       <h2>Kur'an-ı Kerim</h2>
@@ -37,6 +37,10 @@ export function setupQuran(root, player) {
         </div>
       </div>
       <h2 id="qr-title"></h2>
+      <button type="button" id="qr-listen" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"/></svg>
+        <span>Sureyi Dinle</span>
+      </button>
       <p id="qr-status" hidden></p>
       <p id="qr-offline-note" class="footnote" hidden>İndirilen sureler çevrimdışı okunabilir.</p>
       <div id="qr-ayahs"></div>
@@ -50,6 +54,7 @@ export function setupQuran(root, player) {
   const statusEl = root.querySelector('#quran-status')
   const retryBtn = root.querySelector('#quran-retry')
   const qrStatus = root.querySelector('#qr-status')
+  const listenBtn = root.querySelector('#qr-listen')
   const jumpInput = root.querySelector('#qr-jump')
   const fontMinus = root.querySelector('#qr-font-minus')
   const fontPlus = root.querySelector('#qr-font-plus')
@@ -178,8 +183,10 @@ export function setupQuran(root, player) {
     openSurahNo = number
     main.hidden = true
     reader.hidden = false
+    onNav?.() // görünüm geçişi history'ye yazılsın (popstate uygularken bastırılır)
     root.querySelector('#qr-title').textContent = `${number}. ${trName(number)}`
     ayahsEl.replaceChildren()
+    listenBtn.hidden = true // içerik gelmeden büyük dinle butonu görünmesin
     qrStatus.hidden = false
     qrStatus.textContent = 'Yükleniyor…'
     applyArFont()
@@ -195,6 +202,9 @@ export function setupQuran(root, player) {
     openDetail = detail
     qrStatus.hidden = true
     root.querySelector('#qr-offline-note').hidden = true
+    // Büyük "Sureyi Dinle": 1. ayetten başlatır (küçük kart butonları da durur)
+    listenBtn.hidden = !detail.ayahs.some((a) => a.ses)
+    listenBtn.onclick = () => playFrom(detail, 0)
     jumpInput.max = String(detail.ayahs.length)
     jumpInput.value = ''
     const frag = document.createDocumentFragment()
@@ -218,7 +228,7 @@ export function setupQuran(root, player) {
     return 1
   }
 
-  root.querySelector('#qr-back').addEventListener('click', () => {
+  function closeReader() {
     if (openSurahNo && openDetail) savePosition(openSurahNo, topVisibleAyah())
     openSurahNo = null
     openDetail = null
@@ -227,7 +237,11 @@ export function setupQuran(root, player) {
     renderResume()
     markStoredBadges() // yeni açılan sure cihaza inmiş olabilir
     window.scrollTo(0, 0)
-  })
+  }
+
+  // Ekrandaki ‹ Geri, telefonun geri tuşuyla AYNI yoldan gider: history.back()
+  // popstate üretir, kapanış applySub üzerinden yapılır — yığın senkron kalır.
+  root.querySelector('#qr-back').addEventListener('click', () => history.back())
 
   // Ayete atlama
   function jump() {
@@ -274,6 +288,22 @@ export function setupQuran(root, player) {
     // Sekmeye dönüşte çalan ayetin vurgusu geri gelsin
     setVisible(visible) {
       if (visible) markPlayingCard()
+    },
+    // --- Geri tuşu entegrasyonu: alt-görünüm durumu ---
+    getSub() {
+      return openSurahNo
+    },
+    applySub(surahNo) {
+      if (surahNo == null) {
+        if (openSurahNo) closeReader()
+        return
+      }
+      if (openSurahNo !== surahNo) {
+        // İleri gezinmeyle geri açılışta kayıtlı konum korunur; targetAyah'sız
+        // açmak savePosition(n, 1) ile "kaldığın yer"i ezerdi (veri kaybı)
+        const pos = getPosition()
+        openSurah(surahNo, pos && pos.surah === surahNo ? pos.ayah : null)
+      }
     },
   }
 }

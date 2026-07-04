@@ -13,6 +13,7 @@ import { setupMonthly } from './monthly.js'
 import { setupHolidays, formatHijriDate, computeEvents, daysLeft } from './holidays.js'
 import { setupQuran } from './quran.js'
 import { setupPlayer } from './player.js'
+import { setupNav } from './nav.js'
 import { setupEsma, esmaForDate } from './esma.js'
 import { setupServiceWorker } from './update.js'
 import { setupQibla } from './qibla.js'
@@ -47,6 +48,8 @@ let monthly = null // setupMonthly dönüşü; refresh monthly'den önce koşabi
 let holidays = null // setupHolidays dönüşü
 let qibla = null // setupQibla dönüşü
 let quran = null // setupQuran dönüşü
+let dhikr = null // setupDhikr dönüşü
+let nav = null // setupNav dönüşü (geri tuşu yönetimi)
 let target = null // { label, time, isTomorrow }
 let renderedDay = ''
 let greetingMinute = -1 // selam satırı dakikada bir, mevcut tick içinde güncellenir
@@ -364,11 +367,17 @@ function showView(name) {
   // Kur'an sekmesine dönüşte çalan ayet vurgusu tazelenir
   quran?.setVisible(name === 'quran')
 }
-for (const v of TABS) {
-  document.querySelector(`#tab-${v}`).addEventListener('click', () => showView(v))
+// Kullanıcı eylemiyle görünüm geçişi: render + history kaydı bir arada.
+// (showView salt render'dır; popstate geri yüklemesi de onu kullanır.)
+function goView(name) {
+  showView(name)
+  nav?.push()
 }
-document.querySelector('#holiday-card').addEventListener('click', () => showView('holidays'))
-document.querySelector('#esma-card').addEventListener('click', () => showView('esma'))
+for (const v of TABS) {
+  document.querySelector(`#tab-${v}`).addEventListener('click', () => goView(v))
+}
+document.querySelector('#holiday-card').addEventListener('click', () => goView('holidays'))
+document.querySelector('#esma-card').addEventListener('click', () => goView('esma'))
 
 // Yatay swipe ile sekme değişimi: sola = sonraki, sağa = önceki; uçlarda sarma yok.
 // Alt-görünümlerde (holidays) swipe sekme döngüsüne karışmaz.
@@ -377,17 +386,48 @@ setupSwipe(document.querySelector('#app'), (dir) => {
   if (cur === -1) return
   const idx = cur + dir
   if (idx < 0 || idx >= TABS.length) return
-  showView(TABS[idx])
+  goView(TABS[idx])
 })
 
 // Mini oynatıcı tekil: Kur'an sekmesi ile Nazar bölümü aynı kurulumu paylaşır
 const player = setupPlayer()
-setupDhikr(document.querySelector('#view-dhikr'), player)
-quran = setupQuran(document.querySelector('#view-quran'), player)
+dhikr = setupDhikr(document.querySelector('#view-dhikr'), player, () => nav?.push())
+quran = setupQuran(document.querySelector('#view-quran'), player, () => nav?.push())
 monthly = setupMonthly(document.querySelector('#view-monthly'), () => location)
-holidays = setupHolidays(document.querySelector('#view-holidays'), () => showView('times'))
-setupEsma(document.querySelector('#view-esma'), () => showView('times'))
+// Alt-görünümlerin ‹ Geri butonları telefonun geri tuşuyla aynı yoldan gider
+holidays = setupHolidays(document.querySelector('#view-holidays'), () => history.back())
+setupEsma(document.querySelector('#view-esma'), () => history.back())
 qibla = setupQibla(document.querySelector('#view-qibla'), () => location)
+
+// --- Telefon geri tuşu: uygulama içi gezinme + kökte çift-geri çıkış ---
+const exitToast = document.createElement('div')
+exitToast.id = 'exit-toast'
+exitToast.textContent = 'Çıkmak için tekrar geri basın'
+exitToast.hidden = true
+document.body.appendChild(exitToast)
+let exitToastTimer = null
+
+nav = setupNav({
+  // Durum anlık görüntüsü: sekme + modül içi alt-görünümler birlikte saklanır,
+  // geri dönüşte okuyucular da kaldıkları hâle döner
+  getState: () => ({ view: currentView, q: quran.getSub(), d: dhikr.getSub() }),
+  apply(st) {
+    showView(st.view)
+    quran.applySub(st.q ?? null)
+    dhikr.applySub(st.d ?? null)
+  },
+  // Karar: oynatıcı açıkken ilk geri basış oynatıcıyı kapatır, gezinmez
+  isPlayerOpen: () => player.isOpen(),
+  closePlayer: () => player.stop(),
+  showExitHint() {
+    exitToast.hidden = false
+    clearTimeout(exitToastTimer)
+    exitToastTimer = setTimeout(() => {
+      exitToast.hidden = true
+    }, 2000)
+  },
+})
+nav.init()
 
 // Diyanet ile karşılaştırma için: bugünün Aydın (varsayılan) vakitleri
 console.table(

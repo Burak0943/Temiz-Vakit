@@ -894,6 +894,67 @@ header h1 {
   box-shadow: inset 3px 0 0 var(--gold);
 }
 
+/* Çalan ayetin METNİ de amber'e boyanır (kullanıcı isteği: salt kenar çizgisi
+   yetmiyor). Duraklatınca sınıf kaldığından renk kalır; × ile temizlenir. */
+.ayah-card.playing .ayah-ar,
+.ayah-card.playing .ayah-tl,
+.ayah-card.playing .ayah-meal {
+  color: var(--gold);
+}
+
+/* Büyük "Sureyi Dinle": belirgin amber dolgu, 44px dokunma hedefi */
+#qr-listen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0 0 14px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f1419;
+  background: var(--gold);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#qr-listen svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.ayah-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+}
+
+.ayah-play-label {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* Çift-geri çıkış ipucu: sekme barının üstünde 2 sn'lik kibar çubuk */
+#exit-toast {
+  position: fixed;
+  bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  font-size: 14px;
+  color: var(--text-bright);
+  background: var(--surface-next);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+  z-index: 30;
+}
+
 /* Mini oynatıcı: sekme barının üstünde sabit */
 #quran-player {
   position: fixed;
@@ -1021,6 +1082,27 @@ header h1 {
   font-size: 20px;
   font-weight: 600;
   color: var(--text-bright);
+}
+
+#dhikr-subtitle {
+  margin: -8px 0 12px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+#dhikr-hint {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+#dhikr-hint.fresh {
+  color: var(--text);
+}
+
+#dhikr-touch {
+  font-size: 15px;
+  color: var(--text-dim);
 }
 
 #dhikr-targets {

@@ -31,8 +31,9 @@ export function createAyahCard(a, surahNumber, onPlay) {
     playBtn.type = 'button'
     playBtn.className = 'ayah-play'
     playBtn.setAttribute('aria-label', `Ayet ${a.no} sesini oynat`)
+    // Salt ikon bulunamıyordu (kullanıcı gözlemi): ikon + "Dinle" etiketi
     playBtn.innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"/></svg>'
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"/></svg><span class="ayah-play-label">Dinle</span>'
     playBtn.addEventListener('click', onPlay)
     meta.appendChild(playBtn)
   }

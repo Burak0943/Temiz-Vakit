@@ -157,5 +157,9 @@ export function setupPlayer() {
     getState() {
       return playState ? { ayahs: playState.ayahs, index: playState.index } : null
     },
+    // Geri tuşu deseni: oynatıcı görünürken ilk geri onu kapatır
+    isOpen() {
+      return !player.hidden
+    },
   }
 }

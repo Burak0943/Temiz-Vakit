@@ -36,19 +36,22 @@ function vibrate(pattern) {
   if (navigator.vibrate) navigator.vibrate(pattern)
 }
 
-export function setupDhikr(root, player) {
+export function setupDhikr(root, player, onNav) {
   const state = load()
 
   root.innerHTML = `
     <div id="dhikr-main">
       <h2>Zikirmatik</h2>
-      <div id="dhikr-targets" role="group" aria-label="Hedef seçimi">
+      <p id="dhikr-subtitle">Dijital tesbih</p>
+      <div id="dhikr-targets" role="group" aria-label="Hedef sayı seçimi">
         <button type="button" data-target="33">33</button>
         <button type="button" data-target="99">99</button>
         <button type="button" data-target="0">Serbest</button>
       </div>
+      <p id="dhikr-hint">Tesbih çekmek için aşağıdaki alana dokunun</p>
       <button type="button" id="dhikr-pad" aria-label="Zikir say">
         <span id="dhikr-count">0</span>
+        <span id="dhikr-touch">Dokun</span>
         <span id="dhikr-goal"></span>
       </button>
       <button type="button" id="dhikr-reset">Sıfırla — 1 sn basılı tut</button>
@@ -85,12 +88,17 @@ export function setupDhikr(root, player) {
   const pad = root.querySelector('#dhikr-pad')
   const countEl = root.querySelector('#dhikr-count')
   const goalEl = root.querySelector('#dhikr-goal')
+  const touchEl = root.querySelector('#dhikr-touch')
+  const hintEl = root.querySelector('#dhikr-hint')
   const resetBtn = root.querySelector('#dhikr-reset')
   const targetBtns = [...root.querySelectorAll('#dhikr-targets button')]
 
   function render() {
     countEl.textContent = state.count
-    goalEl.textContent = state.target ? `Hedef: ${state.target}` : 'Serbest sayım'
+    goalEl.textContent = state.target ? `Hedef sayı: ${state.target}` : 'Serbest sayım'
+    // Sayaç 0'ken yönlendirme belirginleşir: pad içinde "Dokun", üstte parlak ipucu
+    touchEl.hidden = state.count !== 0
+    hintEl.classList.toggle('fresh', state.count === 0)
     pad.classList.toggle('reached', state.target > 0 && state.count >= state.target)
     for (const b of targetBtns) {
       const active = Number(b.dataset.target) === state.target
@@ -269,6 +277,7 @@ export function setupDhikr(root, player) {
     reader.hidden = false
     applyFont()
     openId = p.id
+    onNav?.() // openId atandıktan SONRA: history anlık görüntüsü duayı içersin
     window.scrollTo(0, scrollPos.get(p.id) || 0)
   }
 
@@ -279,7 +288,8 @@ export function setupDhikr(root, player) {
     main.hidden = false
     window.scrollTo(0, mainScrollY)
   }
-  root.querySelector('#reader-back').addEventListener('click', closeReader)
+  // Ekrandaki ‹ Geri telefonun geri tuşuyla aynı yoldan gider (yığın senkron)
+  root.querySelector('#reader-back').addEventListener('click', () => history.back())
 
   const list = root.querySelector('#prayer-list')
   for (const p of PRAYERS_DATA) {
@@ -397,15 +407,17 @@ export function setupDhikr(root, player) {
     }
     main.hidden = true
     nazarEl.hidden = false
+    onNav?.() // alt-görünüm geçişi history'ye yazılsın
     window.scrollTo(0, 0)
     loadNazar()
     markNazarPlaying() // yeniden açılışta çalan/duran kart vurgusu eşitlensin
   }
-  root.querySelector('#nazar-back').addEventListener('click', () => {
+  function closeNazar() {
     nazarEl.hidden = true
     main.hidden = false
     window.scrollTo(0, nazarMainScrollY)
-  })
+  }
+  root.querySelector('#nazar-back').addEventListener('click', () => history.back())
   nazarRetry.addEventListener('click', loadNazar)
 
   const nazarLi = document.createElement('li')
@@ -417,4 +429,30 @@ export function setupDhikr(root, player) {
   list.appendChild(nazarLi)
 
   render()
+
+  return {
+    // --- Geri tuşu entegrasyonu: alt-görünüm durumu ---
+    getSub() {
+      if (openId) return { type: 'dua', id: openId }
+      if (!nazarEl.hidden) return { type: 'nazar' }
+      return null
+    },
+    applySub(sub) {
+      if (!sub) {
+        if (openId) closeReader()
+        if (!nazarEl.hidden) closeNazar()
+        return
+      }
+      if (sub.type === 'dua') {
+        if (!nazarEl.hidden) closeNazar()
+        if (openId !== sub.id) {
+          const p = PRAYERS_DATA.find((x) => x.id === sub.id)
+          if (p) openPrayer(p)
+        }
+      } else if (sub.type === 'nazar') {
+        if (openId) closeReader()
+        if (nazarEl.hidden) openNazar()
+      }
+    },
+  }
 }
