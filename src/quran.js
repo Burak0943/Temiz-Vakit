@@ -1,6 +1,10 @@
 // Kur'an sekmesi: sure listesi + ayet ayet okuma ekranı.
 // Tüm metinler quran-api.js üzerinden API'den gelir (içerik kuralı).
 import { getSurahList, getSurahDetail, getPosition, savePosition } from './quran-api.js'
+import { SURAH_NAMES_TR } from './surah-names-tr.js'
+
+// Birincil görünen ad Türkçe (kaynak: quran.com v4); dizi dışı kalırsa güvenli geri dönüş
+const trName = (number) => SURAH_NAMES_TR[number - 1] || `Sure ${number}`
 
 const AR_FONT_KEY = 'tv_arfontsize'
 const AR_FONT_STEPS = [22, 26, 30, 34]
@@ -119,7 +123,7 @@ export function setupQuran(root) {
       return
     }
     btn.hidden = false
-    btn.textContent = `Kaldığın yerden devam — ${s.number}. ${s.name} · Ayet ${pos.ayah} ›`
+    btn.textContent = `Kaldığın yerden devam — ${s.number}. ${trName(s.number)} · Ayet ${pos.ayah} ›`
     btn.onclick = () => openSurah(pos.surah, pos.ayah)
   }
 
@@ -141,7 +145,20 @@ export function setupQuran(root) {
       const li = document.createElement('li')
       const btn = document.createElement('button')
       btn.type = 'button'
-      btn.innerHTML = `<span class="s-no">${s.number}</span><span class="s-name">${s.name}</span><span class="s-meta">${s.place} · ${s.ayahs} ayet</span>`
+      // API/önbellek kaynaklı metinler innerHTML yerine textContent ile basılır
+      const no = document.createElement('span')
+      no.className = 's-no'
+      no.textContent = s.number
+      const nm = document.createElement('span')
+      nm.className = 's-name'
+      nm.textContent = trName(s.number)
+      const secondary = document.createElement('small')
+      secondary.textContent = s.name
+      nm.appendChild(secondary)
+      const meta = document.createElement('span')
+      meta.className = 's-meta'
+      meta.textContent = `${s.place} · ${s.ayahs} ayet`
+      btn.append(no, nm, meta)
       btn.addEventListener('click', () => openSurah(s.number))
       li.appendChild(btn)
       frag.appendChild(li)
@@ -163,8 +180,7 @@ export function setupQuran(root) {
     openSurahNo = number
     main.hidden = true
     reader.hidden = false
-    const s = surahList?.find((x) => x.number === number)
-    root.querySelector('#qr-title').textContent = s ? `${s.number}. ${s.name}` : `Sure ${number}`
+    root.querySelector('#qr-title').textContent = `${number}. ${trName(number)}`
     ayahsEl.replaceChildren()
     qrStatus.hidden = false
     qrStatus.textContent = 'Yükleniyor…'
@@ -283,7 +299,7 @@ export function setupQuran(root) {
     if (!playState) return
     const a = playState.detail.ayahs[playState.index]
     player.querySelector('#qp-surah').textContent =
-      `${playState.detail.number}. ${playState.detail.name}`
+      `${playState.detail.number}. ${trName(playState.detail.number)}`
     player.querySelector('#qp-ayah').textContent = `Ayet ${a.no}`
     player.querySelector('#qp-play-icon').style.display = isPlaying ? 'none' : ''
     player.querySelector('#qp-pause-icon').style.display = isPlaying ? '' : 'none'

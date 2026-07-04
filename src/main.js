@@ -12,6 +12,7 @@ import { setupDhikr } from './dhikr.js'
 import { setupMonthly } from './monthly.js'
 import { setupHolidays, formatHijriDate, computeEvents, daysLeft } from './holidays.js'
 import { setupQuran } from './quran.js'
+import { setupEsma, esmaForDate } from './esma.js'
 import { setupServiceWorker } from './update.js'
 import { setupQibla } from './qibla.js'
 import { greetingText } from './greeting.js'
@@ -75,11 +76,19 @@ document.querySelector('#app').innerHTML = `
       <span id="hc-when"></span>
       <span class="hc-more">Tümü ›</span>
     </button>
+    <button id="esma-card" type="button">
+      <span class="ec-label">Günün Esması</span>
+      <span id="ec-latin"></span>
+      <span id="ec-arabic" dir="rtl" lang="ar"></span>
+      <span id="ec-anlam" hidden></span>
+      <span class="hc-more">Tümü ›</span>
+    </button>
     <p class="footnote">Vakitler astronomik hesapla üretilir; Diyanet takviminden ±1 dk farkedebilir.</p>
   </section>
   <section id="view-quran" hidden></section>
   <section id="view-monthly" hidden></section>
   <section id="view-holidays" hidden></section>
+  <section id="view-esma" hidden></section>
   <section id="view-dhikr" hidden></section>
   <section id="view-qibla" hidden></section>
   <nav id="tabs">
@@ -175,6 +184,16 @@ function renderStreak() {
       : `Bugün: ${done}/${TRACKED.length} vakit · Seri: ${days} gün`
 }
 
+// Günün Esması kartı: yılın günü mod 99 — gün dönünce sıradakine geçer
+function renderEsmaCard(now) {
+  const e = esmaForDate(now)
+  document.querySelector('#ec-latin').textContent = e.latin
+  document.querySelector('#ec-arabic').textContent = e.arapca
+  const anlamEl = document.querySelector('#ec-anlam')
+  anlamEl.hidden = !e.anlam
+  anlamEl.textContent = e.anlam || ''
+}
+
 // Vakitler altındaki kompakt "yaklaşan dini gün" kartı (tam liste alt-görünümde)
 function renderHolidayCard(now) {
   const next = computeEvents(now)[0]
@@ -210,6 +229,7 @@ function refresh() {
   renderTimes()
   renderStreak()
   renderHolidayCard(now)
+  renderEsmaCard(now)
   renderCountdown(now)
   // Konum değişimi ve gece yarısı geçişinde aylık tablo da tazelensin
   monthly?.render()
@@ -274,7 +294,7 @@ document.querySelector('#times').addEventListener('click', (e) => {
 // Sekmeler: sayfa yenilenmeden görünüm değişimi.
 // 'holidays' sekmesiz alt-görünümdür: Vakitler'deki karttan açılır.
 const TABS = ['times', 'quran', 'monthly', 'dhikr', 'qibla']
-const VIEWS = [...TABS, 'holidays']
+const VIEWS = [...TABS, 'holidays', 'esma']
 let currentView = 'times'
 function showView(name) {
   currentView = name
@@ -299,6 +319,7 @@ for (const v of TABS) {
   document.querySelector(`#tab-${v}`).addEventListener('click', () => showView(v))
 }
 document.querySelector('#holiday-card').addEventListener('click', () => showView('holidays'))
+document.querySelector('#esma-card').addEventListener('click', () => showView('esma'))
 
 // Yatay swipe ile sekme değişimi: sola = sonraki, sağa = önceki; uçlarda sarma yok.
 // Alt-görünümlerde (holidays) swipe sekme döngüsüne karışmaz.
@@ -314,6 +335,7 @@ setupDhikr(document.querySelector('#view-dhikr'))
 quran = setupQuran(document.querySelector('#view-quran'))
 monthly = setupMonthly(document.querySelector('#view-monthly'), () => location)
 holidays = setupHolidays(document.querySelector('#view-holidays'), () => showView('times'))
+setupEsma(document.querySelector('#view-esma'), () => showView('times'))
 qibla = setupQibla(document.querySelector('#view-qibla'), () => location)
 
 // Diyanet ile karşılaştırma için: bugünün Aydın (varsayılan) vakitleri
