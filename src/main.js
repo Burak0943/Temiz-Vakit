@@ -14,6 +14,7 @@ import { setupHolidays, formatHijriDate } from './holidays.js'
 import { setupServiceWorker } from './update.js'
 import { setupQibla } from './qibla.js'
 import { greetingText } from './greeting.js'
+import { setupSwipe } from './swipe.js'
 
 const DEFAULT_LOCATION = { lat: 37.845, lon: 27.839, label: 'Aydın (varsayılan)', isDefault: true }
 
@@ -248,7 +249,9 @@ document.querySelector('#times').addEventListener('click', (e) => {
 
 // Sekmeler: sayfa yenilenmeden görünüm değişimi
 const VIEWS = ['times', 'monthly', 'holidays', 'dhikr', 'qibla']
+let currentView = 'times'
 function showView(name) {
+  currentView = name
   for (const v of VIEWS) {
     document.querySelector(`#view-${v}`).hidden = v !== name
     const tab = document.querySelector(`#tab-${v}`)
@@ -264,6 +267,13 @@ function showView(name) {
 for (const v of VIEWS) {
   document.querySelector(`#tab-${v}`).addEventListener('click', () => showView(v))
 }
+
+// Yatay swipe ile sekme değişimi: sola = sonraki, sağa = önceki; uçlarda sarma yok
+setupSwipe(document.querySelector('#app'), (dir) => {
+  const idx = VIEWS.indexOf(currentView) + dir
+  if (idx < 0 || idx >= VIEWS.length) return
+  showView(VIEWS[idx])
+})
 
 setupDhikr(document.querySelector('#view-dhikr'))
 monthly = setupMonthly(document.querySelector('#view-monthly'), () => location)

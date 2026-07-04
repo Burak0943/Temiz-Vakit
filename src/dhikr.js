@@ -75,29 +75,49 @@ export function setupDhikr(root) {
     render()
   }
 
-  // İşaretçi için tek olay tipi: pointerdown. Klavye ayrı keydown yolundan sayılır;
-  // preventDefault tarayıcının sentezleyeceği click'i bastırır, böylece hiçbir
-  // girişte ikinci bir tetiklenme yolu kalmaz.
+  // Sayım BIRAKIŞTA yapılır: basılan nokta MOVE_SLOP'tan fazla kayarsa dokunuş
+  // değil kaydırmadır (swipe navigasyonu) — ne sayaç artar ne titreşim olur.
+  // Klavye ayrı keydown yolundan sayılır; preventDefault sentezlenen click'i bastırır.
   // isPrimary KULLANILMIYOR: dokunmada isPrimary belge genelidir — ekranın başka
   // yerine yaslanan parmak/avuç pad dokunuşlarını sessizce düşürürdü. Pad'in kendi
   // aktif işaretçisi takip edilir: pad üstündeki eşzamanlı ikinci parmak sayılmaz.
+  const MOVE_SLOP = 12 // px
   let activePointerId = null
+  let padStartX = 0
+  let padStartY = 0
+  let padMoved = false
+
   pad.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return // sağ/orta tık sayılmaz
     if (activePointerId !== null) return // pad üstünde ikinci parmak sayılmaz
     activePointerId = e.pointerId
+    padStartX = e.clientX
+    padStartY = e.clientY
+    padMoved = false
     try {
-      pad.setPointerCapture(e.pointerId) // up/cancel pad dışında bitse de yakalanır
+      pad.setPointerCapture(e.pointerId) // move/up pad dışına taşsa da yakalanır
     } catch {
       // sentetik/etkin olmayan işaretçi: yakalama şart değil
     }
-    increment()
   })
-  const releasePointer = (e) => {
-    if (e.pointerId === activePointerId) activePointerId = null
-  }
-  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-    pad.addEventListener(ev, releasePointer)
+  pad.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== activePointerId) return
+    if (
+      Math.abs(e.clientX - padStartX) > MOVE_SLOP ||
+      Math.abs(e.clientY - padStartY) > MOVE_SLOP
+    ) {
+      padMoved = true
+    }
+  })
+  pad.addEventListener('pointerup', (e) => {
+    if (e.pointerId !== activePointerId) return
+    activePointerId = null
+    if (!padMoved) increment() // kaymadan bırakıldıysa dokunuştur
+  })
+  for (const ev of ['pointercancel', 'lostpointercapture']) {
+    pad.addEventListener(ev, (e) => {
+      if (e.pointerId === activePointerId) activePointerId = null
+    })
   }
   pad.addEventListener('keydown', (e) => {
     if (e.key !== ' ' && e.key !== 'Enter') return
