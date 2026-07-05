@@ -48,9 +48,76 @@ export function notifySupported() {
   return typeof Notification !== 'undefined'
 }
 
-export function setupNotifications({ onFire }) {
+// VAPID base64url -> Uint8Array (applicationServerKey için)
+function urlBase64ToUint8Array(base64) {
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(b64)
+  const arr = new Uint8Array(raw.length)
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i)
+  return arr
+}
+
+export function setupNotifications({ onFire, getLocation }) {
   let prefs = loadPrefs()
   const fired = new Set() // "YYYY-MM-DD-key" — gün+vakit başına tek bildirim
+
+  // --- Sunucu ayağı (web push) ile abonelik: HEPSİ EN İYİ ÇABA, hata yutulur.
+  // SW + pushManager yoksa (dev/preview) sessiz geçilir; yerel bildirim çalışır.
+  async function getRegistration() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null
+    try {
+      // getRegistration() SW yoksa undefined'a çözülür (ready gibi asılı kalmaz)
+      const reg = await navigator.serviceWorker.getRegistration()
+      return reg || null
+    } catch {
+      return null
+    }
+  }
+
+  async function subscribeServer() {
+    try {
+      const reg = await getRegistration()
+      if (!reg) return
+      const loc = getLocation?.()
+      if (!loc || !Number.isFinite(loc.lat) || !Number.isFinite(loc.lon)) return
+      const res = await fetch('/api/vapid-public')
+      if (!res.ok) return
+      const { publicKey } = await res.json()
+      if (!publicKey) return
+      let sub = await reg.pushManager.getSubscription()
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        })
+      }
+      await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON(), lat: loc.lat, lon: loc.lon, prefs }),
+      })
+    } catch {
+      // sunucu ayağı yoksa/başarısızsa yerel bildirim yine çalışır
+    }
+  }
+
+  async function unsubscribeServer() {
+    try {
+      const reg = await getRegistration()
+      if (!reg) return
+      const sub = await reg.pushManager.getSubscription()
+      if (!sub) return
+      await fetch('/api/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      })
+      await sub.unsubscribe()
+    } catch {
+      // sessiz
+    }
+  }
 
   function permission() {
     if (!notifySupported()) return 'unsupported'
@@ -69,23 +136,27 @@ export function setupNotifications({ onFire }) {
     }
     prefs.enabled = perm === 'granted'
     savePrefs(prefs)
+    if (prefs.enabled) subscribeServer() // sunucu ayağına kaydol (en iyi çaba)
     return perm
   }
 
   function disable() {
     prefs.enabled = false
     savePrefs(prefs)
+    unsubscribeServer() // sunucudan da çık
   }
 
   function setPrayer(key, on) {
     prefs.prayers[key] = !!on
     savePrefs(prefs)
+    if (prefs.enabled) subscribeServer() // güncel tercihleri sunucuya işle
   }
 
   function setOffset(n) {
     if (NOTIFY_OFFSETS.includes(n)) {
       prefs.offset = n
       savePrefs(prefs)
+      if (prefs.enabled) subscribeServer()
     }
   }
 

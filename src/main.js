@@ -484,8 +484,12 @@ function highlightPrayer(label) {
   }, 6000)
 }
 
-// Bildirimler istemci fazı: uygulama açıkken tick'te check() tetiklenir
-notifications = setupNotifications({ onFire: highlightPrayer })
+// Bildirimler: uygulama açıkken tick'te check(); izin verilince sunucu ayağına
+// (web push) abone olur — getLocation aboneliğe koordinatı taşır
+notifications = setupNotifications({
+  onFire: highlightPrayer,
+  getLocation: () => ({ lat: location.lat, lon: location.lon }),
+})
 
 // Karşılama ve Ayarlar (nav'dan önce: onBackIntercept karşılamayı tanısın)
 onboarding = setupOnboarding({

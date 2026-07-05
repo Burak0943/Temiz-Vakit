@@ -1,6 +1,6 @@
 // Temiz Vakit service worker — app shell önbelleği, cache-first.
 // Vakit hesabı adhan ile tamamen yerel; uygulamanın ağ bağımlılığı yok.
-const CACHE = 'tv-v29'
+const CACHE = 'tv-v30'
 // Cevşen hat sayfası görüntüleri (kulliyat.risale.online): CORS başlığı
 // olmadığından sayfa JS'i blob okuyamaz — offline, SW'nin opak yanıt
 // önbelleğiyle sağlanır. AYRI ve KALICI cache: sürüm bump'larında silinmez,
@@ -56,6 +56,40 @@ self.addEventListener('install', (event) => {
 // onaylarsa sayfa bekleyen worker'a bu mesajı gönderir.
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting()
+})
+
+// Web push: sunucudan gelen vakit bildirimini göster (uygulama KAPALIYKEN de).
+self.addEventListener('push', (event) => {
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch {
+    data = {}
+  }
+  const title = data.title || 'Temiz Vakit'
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || '',
+      tag: 'tv-prayer', // aynı anda tek bildirim yığılsın
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { url: data.url || '/' },
+    }),
+  )
+})
+
+// Bildirime tıklama: açık sekme varsa öne getir, yoksa uygulamayı aç.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = event.notification.data?.url || '/'
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if ('focus' in w) return w.focus()
+      }
+      return self.clients.openWindow(url)
+    }),
+  )
 })
 
 self.addEventListener('activate', (event) => {
