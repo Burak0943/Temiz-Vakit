@@ -1162,6 +1162,204 @@ header h1 {
   color: var(--text-dim);
 }
 
+/* Kartlar bölgesi: dini gün + esma + kaza kartları sıkı aralıkla yığılır */
+#cards-region {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+#cards-region > button,
+#cards-region > div {
+  margin: 0;
+}
+
+/* Kaza takibi kartı */
+#qada-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.qc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qc-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+#qada-start,
+#qada-edit {
+  font: inherit;
+  font-size: 13px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 4px 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+#qada-setup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+}
+
+.qs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.qs-row input {
+  width: 64px;
+  padding: 6px 8px;
+  font: inherit;
+  text-align: center;
+  color: var(--text);
+  background: var(--surface-next);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.qc-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.qs-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.qs-actions button {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface-next);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 16px;
+  cursor: pointer;
+}
+
+#qada-save {
+  color: var(--accent);
+}
+
+#qada-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+}
+
+.qt-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.qt-ad {
+  flex: 1;
+}
+
+.qt-n {
+  min-width: 26px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-bright);
+  font-weight: 600;
+}
+
+.qt-item.done .qt-n {
+  color: var(--accent);
+}
+
+.qt-minus {
+  width: 34px;
+  height: 34px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-bright);
+  background: var(--surface-next);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.qt-minus.spent {
+  opacity: 0.35; /* 0'a inen kalem: soluk ama basılı-tut geri alma çalışır */
+}
+
+@keyframes qada-done {
+  from {
+    background: rgba(111, 179, 224, 0.18);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+.qt-item.celebrate {
+  animation: qada-done 1.2s ease-out;
+  border-radius: 6px;
+}
+
+.qc-progress {
+  height: 5px;
+  background: var(--surface-next);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.qc-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.qc-total {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* Aylık: Bugün kestirmesi — #month-nav button genel kuralını ezmek için çift id */
+#month-nav #month-today {
+  font: inherit;
+  font-size: 13px;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+/* Ayarlar: konum işlem notu */
+.set-note {
+  margin: -4px 0 8px;
+  padding: 0 14px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
 /* Ayarlar dişlisi: başlığın sağ üstü, 44px dokunma alanı */
 #view-times header {
   position: relative;

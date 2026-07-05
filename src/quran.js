@@ -116,6 +116,12 @@ export function setupQuran(root, player, onNav) {
   }
   fontMinus.addEventListener('click', () => stepArFont(-1))
   fontPlus.addEventListener('click', () => stepArFont(1))
+  // Ayarlar'dan boyut değişince açık okuyucu anında uygular; önbellek de
+  // tazelenir ki buradaki A-/A+ bayat değerden devam edip ayarı ezmesin
+  window.addEventListener('tv-font-change', () => {
+    arFont = loadArFont()
+    applyArFont()
+  })
 
   // --- Kitaplık: kart altı kompakt devam satırları ---
   function renderLibResumes() {

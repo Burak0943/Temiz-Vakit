@@ -45,6 +45,7 @@ export function setupSettings(root, { getLocationLabel, updateLocation, showOnbo
       <span id="set-location"></span>
       <button type="button" id="set-location-update">Konumu Güncelle</button>
     </div>
+    <p id="set-location-note" class="set-note" hidden></p>
 
     <h3 class="set-section">Görünüm</h3>
     <div class="set-row">
@@ -80,7 +81,10 @@ export function setupSettings(root, { getLocationLabel, updateLocation, showOnbo
   `
 
   root.querySelector('#settings-back').addEventListener('click', () => onBack())
-  root.querySelector('#set-location-update').addEventListener('click', () => updateLocation())
+  root.querySelector('#set-location-update').addEventListener('click', () => {
+    setLocationNote('Güncelleniyor…') // sonuç main.js geri çağrılarıyla yazılır
+    updateLocation()
+  })
   root.querySelector('#set-onboarding').addEventListener('click', () => showOnboarding())
 
   root.querySelector('#set-version').textContent = `Temiz Vakit · sürüm ${version}`
@@ -108,6 +112,8 @@ export function setupSettings(root, { getLocationLabel, updateLocation, showOnbo
     if (idx < 0 || idx >= steps.length) return
     writeStep(key, steps[idx])
     renderFonts()
+    // Açık okuma ekranları anında uygulasın (dhikr.js/quran.js dinler)
+    window.dispatchEvent(new CustomEvent('tv-font-change'))
   }
   root.querySelector('#set-font-minus').addEventListener('click', () => step(FONT_KEY, FONT_STEPS, -1))
   root.querySelector('#set-font-plus').addEventListener('click', () => step(FONT_KEY, FONT_STEPS, 1))
@@ -118,7 +124,14 @@ export function setupSettings(root, { getLocationLabel, updateLocation, showOnbo
     root.querySelector('#set-location').textContent = getLocationLabel()
   }
 
+  function setLocationNote(text) {
+    const el = root.querySelector('#set-location-note')
+    el.textContent = text
+    el.hidden = !text
+  }
+
   return {
+    setLocationNote, // konum güncelleme sonucu Ayarlar İÇİNDE görünsün
     // Görünüm her açıldığında canlı değerlerle tazelenir
     render() {
       renderLocation()

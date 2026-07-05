@@ -21,6 +21,7 @@ export function setupMonthly(root, getLocation) {
     <div id="month-nav">
       <button id="month-prev" type="button" aria-label="Önceki ay">‹</button>
       <h2 id="month-title"></h2>
+      <button id="month-today" type="button" hidden>Bugün</button>
       <button id="month-next" type="button" aria-label="Sonraki ay">›</button>
     </div>
     <div id="month-wrap">
@@ -50,6 +51,8 @@ export function setupMonthly(root, getLocation) {
     }
     title.textContent = `${MONTHS_TR[month]} ${year}`
     const todayInView = today.getFullYear() === year && today.getMonth() === month
+    // Farklı aya gezinince "Bugün" kestirmesi görünür
+    root.querySelector('#month-today').hidden = todayInView
     const daysInMonth = new Date(year, month + 1, 0).getDate()
     // Tek seferde render: satırlar DocumentFragment'ta toplanır
     const frag = document.createDocumentFragment()
@@ -88,6 +91,11 @@ export function setupMonthly(root, getLocation) {
 
   root.querySelector('#month-prev').addEventListener('click', () => shiftMonth(-1))
   root.querySelector('#month-next').addEventListener('click', () => shiftMonth(1))
+  root.querySelector('#month-today').addEventListener('click', () => {
+    navigated = false // görünüm yeniden takvimi izler
+    render()
+    scrollToToday()
+  })
 
   function scrollToToday() {
     tbody.querySelector('tr.today')?.scrollIntoView({ block: 'center' })

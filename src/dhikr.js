@@ -249,6 +249,12 @@ export function setupDhikr(root, player, onNav) {
   }
   fontMinus.addEventListener('click', () => stepFont(-1))
   fontPlus.addEventListener('click', () => stepFont(1))
+  // Ayarlar'dan boyut değişince açık okuyucu anında uygular; önbellek de
+  // tazelenir ki buradaki A-/A+ bayat değerden devam edip ayarı ezmesin
+  window.addEventListener('tv-font-change', () => {
+    fontSize = loadFontSize()
+    applyFont()
+  })
 
   // Dua başına scroll pozisyonu (oturum içi) + listeye dönüşte eski konum.
   // Kaydetme scroll olayına değil ayrılış anına bağlı: okuyucudan çıkarken /

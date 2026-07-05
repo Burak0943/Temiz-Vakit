@@ -16,6 +16,7 @@ import { setupPlayer } from './player.js'
 import { setupNav } from './nav.js'
 import { setupSettings } from './settings.js'
 import { setupOnboarding } from './onboarding.js'
+import { setupQada } from './qada.js'
 import { setupEsma, esmaForDate } from './esma.js'
 import { setupServiceWorker } from './update.js'
 import { setupQibla } from './qibla.js'
@@ -82,22 +83,25 @@ document.querySelector('#app').innerHTML = `
     </section>
     <ul id="times"></ul>
     <p id="streak"></p>
-    <button id="holiday-card" type="button" hidden>
-      <span id="hc-name"></span>
-      <span id="hc-when"></span>
-      <span class="hc-more">Tümü ›</span>
-    </button>
-    <button id="esma-card" type="button">
-      <span class="ec-top">
-        <span class="ec-label">Günün Esması</span>
+    <div id="cards-region">
+      <div id="qada-root"></div>
+      <button id="holiday-card" type="button" hidden>
+        <span id="hc-name"></span>
+        <span id="hc-when"></span>
         <span class="hc-more">Tümü ›</span>
-      </span>
-      <span class="ec-name">
-        <span id="ec-latin"></span>
-        <span id="ec-arabic" dir="rtl" lang="ar"></span>
-      </span>
-      <span id="ec-anlam" hidden></span>
-    </button>
+      </button>
+      <button id="esma-card" type="button">
+        <span class="ec-top">
+          <span class="ec-label">Günün Esması</span>
+          <span class="hc-more">Tümü ›</span>
+        </span>
+        <span class="ec-name">
+          <span id="ec-latin"></span>
+          <span id="ec-arabic" dir="rtl" lang="ar"></span>
+        </span>
+        <span id="ec-anlam" hidden></span>
+      </button>
+    </div>
     <p class="footnote">Vakitler astronomik hesapla üretilir; Diyanet takviminden ±1 dk farkedebilir.</p>
   </section>
   <section id="view-quran" hidden></section>
@@ -309,6 +313,7 @@ function requestLocation() {
   const note = document.querySelector('#location-note')
   if (!navigator.geolocation) {
     note.textContent = 'Tarayıcı konum desteklemiyor'
+    settings?.setLocationNote('Tarayıcı konum desteklemiyor')
     return
   }
   note.textContent = ''
@@ -321,6 +326,7 @@ function requestLocation() {
         label: `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`,
         isDefault: false,
       }
+      settings?.setLocationNote('') // başarı: eski hata/işlem notu temizlenir
       refresh() // vakitler konum adını BEKLEMEZ: önce koordinatla hesaplanır
       fetchLocationName(latitude, longitude)
         .then((name) => {
@@ -335,8 +341,13 @@ function requestLocation() {
         })
     },
     () => {
-      // reddedildi/başarısız: varsayılan Aydın ile devam, ama sessiz kalma
-      note.textContent = 'Konum alınamadı, varsayılan kullanılıyor'
+      // reddedildi/başarısız: eldeki konumla devam, ama sessiz kalma.
+      // Metin gerçeği söylesin: önceki gerçek konum kullanımdaysa "varsayılan" deme
+      const msg = location.isDefault
+        ? 'Konum alınamadı, varsayılan kullanılıyor'
+        : 'Konum alınamadı, mevcut konum kullanılmaya devam ediyor'
+      note.textContent = msg
+      settings?.setLocationNote(msg)
       refresh()
     },
     { timeout: 10000 },
@@ -403,6 +414,7 @@ setupSwipe(document.querySelector('#app'), (dir) => {
 
 // Mini oynatıcı tekil: Kur'an sekmesi ile Nazar bölümü aynı kurulumu paylaşır
 const player = setupPlayer()
+setupQada(document.querySelector('#qada-root'))
 dhikr = setupDhikr(document.querySelector('#view-dhikr'), player, () => nav?.push())
 quran = setupQuran(document.querySelector('#view-quran'), player, () => nav?.push())
 monthly = setupMonthly(document.querySelector('#view-monthly'), () => location)
