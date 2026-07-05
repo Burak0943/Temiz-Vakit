@@ -1751,6 +1751,79 @@ a.set-link {
   background: var(--accent);
 }
 
+/* Bildirim ayarları: aç/kapa anahtar butonları + hatırlatma segmenti */
+#notif-master,
+#notif-prayers [data-prayer] {
+  min-width: 64px;
+  font: inherit;
+  color: var(--text-dim);
+  background: var(--surface-next);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 14px;
+  cursor: pointer;
+}
+
+#notif-master.on,
+#notif-prayers [data-prayer].on {
+  color: #0f1419;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.set-seg {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.set-seg button {
+  flex: 1;
+  padding: 7px 4px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.set-seg button.active {
+  color: var(--text-bright);
+  border-color: var(--accent);
+}
+
+/* Vakit bildirimi sayfa içi vurgusu */
+#prayer-toast {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f1419;
+  background: var(--gold);
+  border-radius: 999px;
+  white-space: nowrap;
+  z-index: 45;
+}
+
+@keyframes cd-flash {
+  from {
+    box-shadow: 0 0 0 2px var(--gold);
+  }
+  to {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+#countdown-box.flash {
+  animation: cd-flash 1.5s ease-out;
+  border-radius: 12px;
+}
+
 /* Çift-geri çıkış ipucu: sekme barının üstünde 2 sn'lik kibar çubuk */
 #exit-toast {
   position: fixed;

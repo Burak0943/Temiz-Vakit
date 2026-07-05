@@ -4,6 +4,7 @@
 // AYNI localStorage anahtarlarına yazar (dhikr.js / quran.js adım dizilerinin
 // aynası); okuma ekranları açılırken anahtarı yeniden okur.
 import { version } from '../package.json'
+import { NOTIFY_PRAYERS, NOTIFY_OFFSETS } from './notifications.js'
 
 const FONT_KEY = 'tv_fontsize'
 const FONT_STEPS = [16, 20, 24, 28] // dhikr.js FONT_STEPS aynası
@@ -27,6 +28,7 @@ const BACKUP_KEYS = [
   'tv_hatim',
   'tv_quran_juz',
   'tv_gunun_ayeti',
+  'tv_notify',
 ]
 
 // Boyut tavanları: dürüst veri en fazla yüzlerce KB'dir; dev değerli hazırlanmış
@@ -81,6 +83,10 @@ const VALIDATORS = {
     const o = JSON.parse(s)
     return o && typeof o === 'object' && Number.isInteger(o.no)
   },
+  tv_notify: (s) => {
+    const o = JSON.parse(s)
+    return o && typeof o === 'object' && !Array.isArray(o)
+  },
 }
 
 const KAYNAKLAR = [
@@ -108,7 +114,12 @@ function writeStep(key, value) {
   }
 }
 
-export function setupSettings(root, { getLocationLabel, updateLocation, showOnboarding, onBack }) {
+export function setupSettings(
+  root,
+  { getLocationLabel, updateLocation, showOnboarding, onBack, notifications },
+) {
+  const notify = notifications
+  const offsetLabel = (n) => (n === 0 ? 'Vaktinde' : `${n} dakika önce`)
   root.innerHTML = `
     <button type="button" id="settings-back">‹ Geri</button>
     <h2>Ayarlar</h2>
@@ -139,7 +150,18 @@ export function setupSettings(root, { getLocationLabel, updateLocation, showOnbo
     </div>
 
     <h3 class="set-section">Bildirimler</h3>
-    <div class="set-row set-passive"><span>Vakit bildirimleri yakında</span></div>
+    <div class="set-row">
+      <span>Vakit bildirimleri</span>
+      <button type="button" id="notif-master" role="switch" aria-checked="false">Kapalı</button>
+    </div>
+    <div id="notif-detail" hidden>
+      <p class="set-note">Hatırlatma zamanı</p>
+      <div id="notif-offset" class="set-seg" role="group" aria-label="Hatırlatma zamanı"></div>
+      <p class="set-note">Bildirilecek vakitler</p>
+      <div id="notif-prayers"></div>
+    </div>
+    <p id="notif-status" class="set-note" hidden></p>
+    <p class="set-note">Uygulama kapalıyken bildirim için sunucu altyapısı yakında. Şimdilik bildirimler yalnız uygulama açıkken gelir.</p>
 
     <h3 class="set-section">Veriler</h3>
     <div class="set-row">
@@ -356,6 +378,83 @@ export function setupSettings(root, { getLocationLabel, updateLocation, showOnbo
     p.hidden = !p.hidden
   })
 
+  // --- Bildirimler bölümü ---
+  const notifMaster = root.querySelector('#notif-master')
+  const notifDetail = root.querySelector('#notif-detail')
+  const notifStatus = root.querySelector('#notif-status')
+
+  // Offset segmenti ve vakit anahtarları bir kez kurulur
+  const offsetSeg = root.querySelector('#notif-offset')
+  offsetSeg.append(
+    ...NOTIFY_OFFSETS.map((n) => {
+      const b = document.createElement('button')
+      b.type = 'button'
+      b.dataset.offset = n
+      b.textContent = offsetLabel(n)
+      b.addEventListener('click', () => {
+        notify.setOffset(n)
+        renderNotif()
+      })
+      return b
+    }),
+  )
+  const prayersWrap = root.querySelector('#notif-prayers')
+  for (const p of NOTIFY_PRAYERS) {
+    const row = document.createElement('div')
+    row.className = 'set-row'
+    const label = document.createElement('span')
+    label.textContent = p.ad
+    const tog = document.createElement('button')
+    tog.type = 'button'
+    tog.setAttribute('role', 'switch')
+    tog.dataset.prayer = p.key
+    tog.addEventListener('click', () => {
+      const on = notify.getPrefs().prayers[p.key]
+      notify.setPrayer(p.key, !on)
+      renderNotif()
+    })
+    row.append(label, tog)
+    prayersWrap.appendChild(row)
+  }
+
+  notifMaster.addEventListener('click', async () => {
+    const prefs = notify.getPrefs()
+    if (prefs.enabled) {
+      notify.disable()
+      renderNotif()
+      return
+    }
+    const perm = await notify.requestEnable()
+    if (perm === 'unsupported') notifStatus.textContent = 'Bu tarayıcı bildirimleri desteklemiyor.'
+    else if (perm === 'denied') notifStatus.textContent = 'Bildirim izni reddedildi. Tarayıcı ayarlarından açabilirsiniz.'
+    else notifStatus.textContent = ''
+    renderNotif()
+  })
+
+  function renderNotif() {
+    const prefs = notify.getPrefs()
+    const perm = notify.permission()
+    notifMaster.textContent = prefs.enabled ? 'Açık' : 'Kapalı'
+    notifMaster.classList.toggle('on', prefs.enabled)
+    notifMaster.setAttribute('aria-checked', prefs.enabled)
+    notifDetail.hidden = !prefs.enabled
+    notifStatus.hidden = !notifStatus.textContent
+    for (const b of offsetSeg.children) {
+      const active = Number(b.dataset.offset) === prefs.offset
+      b.classList.toggle('active', active)
+      b.setAttribute('aria-pressed', active)
+    }
+    for (const t of prayersWrap.querySelectorAll('[data-prayer]')) {
+      const on = prefs.prayers[t.dataset.prayer]
+      t.textContent = on ? 'Açık' : 'Kapalı'
+      t.classList.toggle('on', on)
+      t.setAttribute('aria-checked', on)
+    }
+    if (perm === 'denied' && !prefs.enabled && !notifStatus.textContent) {
+      // izin reddedilmişse kalıcı bilgi
+    }
+  }
+
   function renderLocation() {
     root.querySelector('#set-location').textContent = getLocationLabel()
   }
@@ -372,6 +471,7 @@ export function setupSettings(root, { getLocationLabel, updateLocation, showOnbo
     render() {
       renderLocation()
       renderFonts()
+      renderNotif()
     },
     renderLocation, // konum çözümü asenkron bittiğinde de tazelensin
   }

@@ -19,6 +19,7 @@ import { setupOnboarding } from './onboarding.js'
 import { setupQada } from './qada.js'
 import { kerahatWindows, activeKerahat } from './kerahat.js'
 import { setupGununAyeti } from './ayet.js'
+import { setupNotifications } from './notifications.js'
 import { setupEsma, esmaForDate } from './esma.js'
 import { setupServiceWorker } from './update.js'
 import { setupQibla } from './qibla.js'
@@ -58,6 +59,7 @@ let nav = null // setupNav dönüşü (geri tuşu yönetimi)
 let settings = null // setupSettings dönüşü
 let onboarding = null // setupOnboarding dönüşü
 let gununAyeti = null // setupGununAyeti dönüşü
+let notifications = null // setupNotifications dönüşü
 let target = null // { label, time, isTomorrow }
 let renderedDay = ''
 let greetingMinute = -1 // selam satırı dakikada bir, mevcut tick içinde güncellenir
@@ -286,6 +288,9 @@ function refresh() {
 
 function tick() {
   const now = new Date()
+  // Bildirim kontrolü her saniye: uygulama açıkken vakit (± seçilen erken
+  // hatırlatma) geldiğinde tetiklenir. lastToday bugünün 6 vaktini taşır.
+  notifications?.check(now, lastToday)
   if (!target || now >= target.time || now.toDateString() !== renderedDay) {
     refresh()
   } else {
@@ -460,16 +465,40 @@ exitToast.hidden = true
 document.body.appendChild(exitToast)
 let exitToastTimer = null
 
+// Vakit bildirimi sayfa içi vurgusu: geri sayım kutusunda kısa süreli şerit
+const prayerToast = document.createElement('div')
+prayerToast.id = 'prayer-toast'
+prayerToast.hidden = true
+document.body.appendChild(prayerToast)
+let prayerToastTimer = null
+function highlightPrayer(label) {
+  prayerToast.textContent = `${label} vakti`
+  prayerToast.hidden = false
+  const box = document.querySelector('#countdown-box')
+  box.classList.remove('flash')
+  void box.offsetWidth
+  box.classList.add('flash')
+  clearTimeout(prayerToastTimer)
+  prayerToastTimer = setTimeout(() => {
+    prayerToast.hidden = true
+  }, 6000)
+}
+
+// Bildirimler istemci fazı: uygulama açıkken tick'te check() tetiklenir
+notifications = setupNotifications({ onFire: highlightPrayer })
+
 // Karşılama ve Ayarlar (nav'dan önce: onBackIntercept karşılamayı tanısın)
 onboarding = setupOnboarding({
   requestLocation,
   getLocationLabel: () => location.label,
+  requestNotifications: () => notifications.requestEnable(),
 })
 settings = setupSettings(document.querySelector('#view-settings'), {
   getLocationLabel: () => `Konum: ${location.label}`,
   updateLocation: requestLocation,
   showOnboarding: () => onboarding.show(true),
   onBack: () => history.back(),
+  notifications,
 })
 document.querySelector('#settings-btn').addEventListener('click', () => goView('settings'))
 

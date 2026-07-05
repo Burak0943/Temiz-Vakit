@@ -41,7 +41,9 @@ function hasExistingData() {
   }
 }
 
-export function setupOnboarding({ requestLocation, getLocationLabel }) {
+const LAST_CARD = 3 // 0 hoşgeldin · 1 özellikler · 2 konum · 3 bildirim
+
+export function setupOnboarding({ requestLocation, getLocationLabel, requestNotifications }) {
   const overlay = document.createElement('div')
   overlay.id = 'onboarding'
   overlay.hidden = true
@@ -50,21 +52,27 @@ export function setupOnboarding({ requestLocation, getLocationLabel }) {
   let cardIndex = 0
   let replayMode = false
 
-  function finish(withLocation) {
+  function finish() {
     setFlag()
     overlay.hidden = true
-    if (withLocation) requestLocation()
+  }
+
+  function next() {
+    cardIndex++
+    render()
   }
 
   function render() {
-    const dots = [0, 1, 2]
+    const dots = [0, 1, 2, 3]
       .map((i) => `<span class="ob-dot${i === cardIndex ? ' active' : ''}"></span>`)
       .join('')
     let body = ''
+    let actions = ''
     if (cardIndex === 0) {
       body = `
         <h2>Temiz Vakit'e hoş geldiniz</h2>
         <p>Reklamsız, sade bir ibadet yol arkadaşı.</p>`
+      actions = '<button type="button" id="ob-next">İleri</button>'
     } else if (cardIndex === 1) {
       body = `
         <h2>Neler var?</h2>
@@ -74,40 +82,63 @@ export function setupOnboarding({ requestLocation, getLocationLabel }) {
           <li>${CARD_ICONS.kible}<span>Kıble pusulası</span></li>
           <li>${CARD_ICONS.zikir}<span>Zikirmatik ve dualar</span></li>
         </ul>`
-    } else if (replayMode) {
-      // Tekrar izleme: izin İSTENMEZ, yalnız bilgi verilir
-      body = `
-        <h2>Konum</h2>
-        <p>Vakitler konumunuza göre hesaplanır. Şu anki konum: ${getLocationLabel()}.</p>
-        <p class="ob-small">Konum, Ayarlar bölümünden güncellenebilir.</p>`
+      actions = '<button type="button" id="ob-next">İleri</button>'
+    } else if (cardIndex === 2) {
+      if (replayMode) {
+        body = `
+          <h2>Konum</h2>
+          <p>Vakitler konumunuza göre hesaplanır. Şu anki konum: ${getLocationLabel()}.</p>
+          <p class="ob-small">Konum, Ayarlar bölümünden güncellenebilir.</p>`
+        actions = '<button type="button" id="ob-next">İleri</button>'
+      } else {
+        body = `
+          <h2>Konum</h2>
+          <p>Vakitler için konumunuza ihtiyacımız var.</p>`
+        actions = `
+          <button type="button" id="ob-locate">Konumumu Bul</button>
+          <button type="button" id="ob-skip">Şimdilik varsayılanla devam et</button>`
+      }
     } else {
-      body = `
-        <h2>Konum</h2>
-        <p>Vakitler için konumunuza ihtiyacımız var.</p>`
+      // Kart 3: bildirim izni daveti
+      if (replayMode) {
+        body = `
+          <h2>Bildirimler</h2>
+          <p>Vakit bildirimleri Ayarlar bölümünden açılıp ayarlanabilir.</p>
+          <p class="ob-small">Bildirimler yalnız uygulama açıkken gelir; kapalıyken bildirim için sunucu altyapısı yakında.</p>`
+        actions = '<button type="button" id="ob-close">Kapat</button>'
+      } else {
+        body = `
+          <h2>Bildirimler</h2>
+          <p>Vakit girince hatırlatalım mı?</p>
+          <p class="ob-small">Bildirimler şimdilik yalnız uygulama açıkken gelir.</p>`
+        actions = `
+          <button type="button" id="ob-notify">Bildirimlere izin ver</button>
+          <button type="button" id="ob-skip">Şimdilik atla</button>`
+      }
     }
-
-    const nextBtn =
-      cardIndex < 2
-        ? '<button type="button" id="ob-next">İleri</button>'
-        : replayMode
-          ? '<button type="button" id="ob-close">Kapat</button>'
-          : `<button type="button" id="ob-locate">Konumumu Bul</button>
-             <button type="button" id="ob-skip">Şimdilik varsayılanla devam et</button>`
 
     overlay.innerHTML = `
       <div class="ob-card">
         ${body}
-        <div class="ob-actions">${nextBtn}</div>
+        <div class="ob-actions">${actions}</div>
         <div class="ob-dots">${dots}</div>
       </div>`
 
-    overlay.querySelector('#ob-next')?.addEventListener('click', () => {
-      cardIndex++
-      render()
+    overlay.querySelector('#ob-next')?.addEventListener('click', next)
+    overlay.querySelector('#ob-close')?.addEventListener('click', finish)
+    overlay.querySelector('#ob-locate')?.addEventListener('click', () => {
+      requestLocation() // Aydın varsayılanı da etkin; asenkron izin akışı arka planda
+      next()
     })
-    overlay.querySelector('#ob-close')?.addEventListener('click', () => finish(false))
-    overlay.querySelector('#ob-locate')?.addEventListener('click', () => finish(true))
-    overlay.querySelector('#ob-skip')?.addEventListener('click', () => finish(false)) // Aydın varsayılanı zaten etkin
+    overlay.querySelector('#ob-notify')?.addEventListener('click', async () => {
+      await requestNotifications() // izin sonucu ne olursa olsun karşılama biter
+      finish()
+    })
+    overlay.querySelector('#ob-skip')?.addEventListener('click', () => {
+      // Konum kartında atla -> bildirim kartına; bildirim kartında atla -> bitir
+      if (cardIndex < LAST_CARD) next()
+      else finish()
+    })
   }
 
   // Kartlar arasında yatay kaydırma (katman body'de: sekme swipe'ına karışmaz)
@@ -123,7 +154,7 @@ export function setupOnboarding({ requestLocation, getLocationLabel }) {
     const dt = Date.now() - swipeStart.t
     swipeStart = null
     if (Math.abs(dx) >= 60 && Math.abs(dx) >= 2 * Math.abs(dy) && dt <= 600) {
-      if (dx < 0 && cardIndex < 2) cardIndex++
+      if (dx < 0 && cardIndex < LAST_CARD) cardIndex++
       else if (dx > 0 && cardIndex > 0) cardIndex--
       else return
       render()
