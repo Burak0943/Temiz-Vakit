@@ -73,15 +73,36 @@ const VALIDATORS = {
   tv_onboarded: (s) => s === '1',
   tv_hatim: (s) => {
     const o = JSON.parse(s)
-    return o && Array.isArray(o.okundu) && o.okundu.every(Number.isInteger)
+    // Sure numaraları 1..114 ve en çok 114 kayıt: hazırlanmış dev dizi
+    // "%74561" gibi anlamsız ilerleme göstermesin
+    return (
+      o &&
+      Array.isArray(o.okundu) &&
+      o.okundu.length <= 114 &&
+      o.okundu.every((x) => Number.isInteger(x) && x >= 1 && x <= 114)
+    )
   },
   tv_quran_juz: (s) => {
     const o = JSON.parse(s)
-    return Array.isArray(o) && o.length === 30
+    // Yalnız uzunluk değil, her girdinin şekli de doğrulanır: bozuk-ama-30
+    // önbellek openSurah(undefined) tetikliyordu
+    return (
+      Array.isArray(o) &&
+      o.length === 30 &&
+      o.every((j) => j && Number.isInteger(j.surah) && Number.isInteger(j.ayah))
+    )
   },
   tv_gunun_ayeti: (s) => {
     const o = JSON.parse(s)
-    return o && typeof o === 'object' && Number.isInteger(o.no)
+    // surah/ayah da doğrulanır: eksikse kart "undefined:undefined" gösterip
+    // tıklamada /surah/undefined isteğine düşüyordu
+    return (
+      o &&
+      typeof o === 'object' &&
+      Number.isInteger(o.no) &&
+      Number.isInteger(o.surah) &&
+      Number.isInteger(o.ayah)
+    )
   },
   tv_notify: (s) => {
     const o = JSON.parse(s)

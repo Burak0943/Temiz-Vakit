@@ -28,5 +28,12 @@ export function kerahatWindows({ sunrise, dhuhr, maghrib }) {
 }
 
 export function activeKerahat(windows, now) {
-  return windows.find((w) => now >= w.start && now < w.end) || null
+  // Geçersiz tarih koruması: kutup enlemlerinde adhan sunrise/maghrib için
+  // Invalid Date (NaN) döndürebilir; NaN karşılaştırmaları zaten false verir
+  // ama niyeti açık kılmak için o pencereler elenir.
+  return (
+    windows.find(
+      (w) => !Number.isNaN(w.start.getTime()) && !Number.isNaN(w.end.getTime()) && now >= w.start && now < w.end,
+    ) || null
+  )
 }

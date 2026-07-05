@@ -28,7 +28,12 @@ const HATIM_KEY = 'tv_hatim'
 function loadHatim() {
   try {
     const o = JSON.parse(localStorage.getItem(HATIM_KEY))
-    return new Set(Array.isArray(o?.okundu) ? o.okundu.filter(Number.isInteger) : [])
+    // Yalnız geçerli sure numaraları (1..114): bozuk kayıt "%74561" gibi
+    // anlamsız ilerleme üretmesin (yedek doğrulamasına ek bağımsız savunma)
+    const gecerli = Array.isArray(o?.okundu)
+      ? o.okundu.filter((x) => Number.isInteger(x) && x >= 1 && x <= 114)
+      : []
+    return new Set(gecerli)
   } catch {
     return new Set()
   }
@@ -326,7 +331,15 @@ export function setupQuran(root, player, onNav) {
     root.querySelector('#surah-list').hidden = cuz
     searchInput.hidden = cuz
     juzListEl.hidden = !cuz
-    if (cuz && !juzLoaded) loadJuz()
+    // Paylaşılan durum/tekrar-dene öğeleri diğer segmentin hata mesajını
+    // taşımasın (cüz hatası iyi sure listesinin üstünde kalıyordu)
+    statusEl.hidden = true
+    retryBtn.hidden = true
+    if (cuz) {
+      if (!juzLoaded) loadJuz()
+    } else if (!surahList) {
+      loadList() // sure listesi daha önce yüklenememişse yeniden dene
+    }
   }
   segSureler.addEventListener('click', () => setSegment(false))
   segCuzler.addEventListener('click', () => setSegment(true))

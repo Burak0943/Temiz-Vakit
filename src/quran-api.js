@@ -130,13 +130,24 @@ export async function getStoredSurahNumbers() {
 // olduğundan localStorage'da kalıcı önbellek yeterli.
 const JUZ_KEY = 'tv_quran_juz'
 
+function validJuz(list) {
+  return (
+    Array.isArray(list) &&
+    list.length === 30 &&
+    list.every((j) => j && Number.isInteger(j.surah) && Number.isInteger(j.ayah))
+  )
+}
+
 export async function getJuzList() {
+  // Önbellek yalnız ŞEKLİ geçerliyse güvenilir: bozuk-ama-30 girdi (ör. hatalı
+  // yedek) openSurah(undefined) tetikliyordu — geçersizse ağdan yeniden çekilir
   const cached = readStore(JUZ_KEY)
-  if (Array.isArray(cached) && cached.length === 30) return cached
+  if (validJuz(cached)) return cached
   const data = await getJson(`${BASE}/meta`)
   const refs = data.juzs?.references
   if (!Array.isArray(refs) || refs.length !== 30) throw new Error(FRIENDLY)
   const list = refs.map((r, i) => ({ no: i + 1, surah: r.surah, ayah: r.ayah }))
+  if (!validJuz(list)) throw new Error(FRIENDLY)
   writeStore(JUZ_KEY, list)
   return list
 }

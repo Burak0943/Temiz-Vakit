@@ -103,6 +103,7 @@ export function setupPlayer() {
     errorStreak++
     if (errorStreak >= 3) {
       isPlaying = false
+      audio.pause() // 'pause' olayını tetikler: audioLock (ekran kilidi) bırakılsın
       updateUi()
       return
     }
