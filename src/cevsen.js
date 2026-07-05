@@ -4,6 +4,7 @@
 // Offline: CORS başlığı olmadığından blob/IndexedDB İMKÂNSIZ; ziyaret edilen
 // sayfalar service worker'ın kalıcı önbelleğiyle saklanır (bkz. public/sw.js).
 import { CEVSEN_SECTIONS, cevsenPageUrl } from './cevsen-pages.js'
+import { wakeRef, wakeUnref } from './wakelock.js'
 
 const POS_KEY = 'tv_cevsen_pos'
 const KAYNAK = 'Kaynak: Hayrat Neşriyat — kulliyat.risale.online (izinli kullanım)'
@@ -72,6 +73,14 @@ export function setupCevsen(container, onNav) {
   let openSection = -1 // -1: görüntüleyici kapalı
   let openPage = 1
   const preloaded = new Set() // aynı sayfaya iki preload Image nesnesi kurulmasın
+  let viewerLock = false // görüntüleyici açıkken ekran uyanık
+
+  function setViewerLock(on) {
+    if (on === viewerLock) return
+    viewerLock = on
+    if (on) wakeRef()
+    else wakeUnref()
+  }
 
   // --- Bölüm listesi ---
   function renderResume() {
@@ -200,6 +209,7 @@ export function setupCevsen(container, onNav) {
   function openList() {
     viewerEl.hidden = true
     openSection = -1
+    setViewerLock(false)
     renderResume()
     mainEl.hidden = false
     window.scrollTo(0, 0)
@@ -209,6 +219,7 @@ export function setupCevsen(container, onNav) {
   function openViewer(si, page) {
     mainEl.hidden = true
     viewerEl.hidden = false
+    setViewerLock(true)
     openSection = si
     const pos = loadPos()
     loadPage(page || (pos && pos.si === si ? pos.page : 1))
@@ -220,6 +231,7 @@ export function setupCevsen(container, onNav) {
     mainEl.hidden = true
     viewerEl.hidden = true
     openSection = -1
+    setViewerLock(false)
   }
 
   container.querySelector('#cevsen-back').addEventListener('click', () => history.back())
@@ -257,6 +269,7 @@ export function setupCevsen(container, onNav) {
       if (sub.type === 'cevsen') {
         viewerEl.hidden = true
         openSection = -1
+        setViewerLock(false)
         renderResume()
         mainEl.hidden = false
         return
@@ -265,6 +278,7 @@ export function setupCevsen(container, onNav) {
       const si = CEVSEN_SECTIONS.findIndex((s) => s.klasor === sub.k)
       if (si === -1) {
         viewerEl.hidden = true
+        setViewerLock(false)
         renderResume()
         mainEl.hidden = false
         return
@@ -272,6 +286,7 @@ export function setupCevsen(container, onNav) {
       if (openSection !== si || viewerEl.hidden) {
         mainEl.hidden = true
         viewerEl.hidden = false
+        setViewerLock(true)
         openSection = si
         // Girdiden sayfa değil, kayıtlı konumdan açılır (quran.js emsali):
         // ileri gezinme "kaldığın yer"i ezmesin

@@ -1,6 +1,8 @@
 // Sesli okuma mini oynatıcısı: HTML5 Audio, ayet ayet stream, otomatik ilerleme.
 // Kur'an sekmesi ile Nazar bölümü ortak kullanır (tek kurulum, body'ye eklenir
 // ki sekme değişse de görünür kalsın). Çalma listesi jenerik: { title, ayahs }.
+import { wakeRef, wakeUnref } from './wakelock.js'
+
 export function setupPlayer() {
   const player = document.createElement('div')
   player.id = 'quran-player'
@@ -110,12 +112,22 @@ export function setupPlayer() {
   audio.addEventListener('playing', () => {
     errorStreak = 0 // gerçek oynatma başladı; hata serisi sıfırlanır
   })
+  // Sesli oynatma sırasında ekran uyanık kalsın (duraklatınca bırakılır)
+  let audioLock = false
   audio.addEventListener('play', () => {
     isPlaying = true
+    if (!audioLock) {
+      audioLock = true
+      wakeRef()
+    }
     updateUi()
   })
   audio.addEventListener('pause', () => {
     isPlaying = false
+    if (audioLock) {
+      audioLock = false
+      wakeUnref()
+    }
     updateUi()
   })
 

@@ -13,6 +13,7 @@ import {
 import { SURAH_NAMES_TR } from './surah-names-tr.js'
 import { createAyahCard } from './ayah-card.js'
 import { setupCevsen } from './cevsen.js'
+import { wakeRef, wakeUnref } from './wakelock.js'
 
 // Birincil görünen ad Türkçe (kaynak: quran.com v4); dizi dışı kalırsa güvenli geri dönüş
 const trName = (number) => SURAH_NAMES_TR[number - 1] || `Sure ${number}`
@@ -122,6 +123,7 @@ export function setupQuran(root, player, onNav) {
   let openDetail = null
   let hatim = loadHatim()
   let juzLoaded = false
+  let readerLock = false // okuma ekranı açıkken ekran uyanık (wake lock ref'i)
 
   // --- Arapça yazı boyutu: dualardakiyle aynı desen, ayrı anahtar ---
   function loadArFont() {
@@ -390,6 +392,10 @@ export function setupQuran(root, player, onNav) {
     libraryEl.hidden = true // devam kartından doğrudan açılışta kitaplık kapanır
     main.hidden = true
     reader.hidden = false
+    if (!readerLock) {
+      readerLock = true
+      wakeRef() // okuma sırasında ekran sönmesin
+    }
     onNav?.() // görünüm geçişi history'ye yazılsın (popstate uygularken bastırılır)
     root.querySelector('#qr-title').textContent = `${number}. ${trName(number)}`
     ayahsEl.replaceChildren()
@@ -458,6 +464,10 @@ export function setupQuran(root, player, onNav) {
     openSurahNo = null
     openDetail = null
     reader.hidden = true
+    if (readerLock) {
+      readerLock = false
+      wakeUnref()
+    }
     markStoredBadges() // yeni açılan sure cihaza inmiş olabilir
     window.scrollTo(0, 0)
   }
@@ -511,6 +521,10 @@ export function setupQuran(root, player, onNav) {
     // Sekmeye dönüşte çalan ayetin vurgusu geri gelsin
     setVisible(visible) {
       if (visible) markPlayingCard()
+    },
+    // Günün ayeti kartından: ilgili sure ve ayete doğrudan iniş
+    openAt(surah, ayah) {
+      openSurah(surah, ayah)
     },
     // --- Geri tuşu entegrasyonu: alt-görünüm durumu ---
     // null = kitaplık | {type:'kuran'} = sure listesi | {type:'sure',no} |

@@ -26,6 +26,7 @@ const BACKUP_KEYS = [
   'tv_onboarded',
   'tv_hatim',
   'tv_quran_juz',
+  'tv_gunun_ayeti',
 ]
 
 // Boyut tavanları: dürüst veri en fazla yüzlerce KB'dir; dev değerli hazırlanmış
@@ -75,6 +76,10 @@ const VALIDATORS = {
   tv_quran_juz: (s) => {
     const o = JSON.parse(s)
     return Array.isArray(o) && o.length === 30
+  },
+  tv_gunun_ayeti: (s) => {
+    const o = JSON.parse(s)
+    return o && typeof o === 'object' && Number.isInteger(o.no)
   },
 }
 

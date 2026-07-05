@@ -18,6 +18,7 @@ import { setupSettings } from './settings.js'
 import { setupOnboarding } from './onboarding.js'
 import { setupQada } from './qada.js'
 import { kerahatWindows, activeKerahat } from './kerahat.js'
+import { setupGununAyeti } from './ayet.js'
 import { setupEsma, esmaForDate } from './esma.js'
 import { setupServiceWorker } from './update.js'
 import { setupQibla } from './qibla.js'
@@ -56,6 +57,7 @@ let dhikr = null // setupDhikr dönüşü
 let nav = null // setupNav dönüşü (geri tuşu yönetimi)
 let settings = null // setupSettings dönüşü
 let onboarding = null // setupOnboarding dönüşü
+let gununAyeti = null // setupGununAyeti dönüşü
 let target = null // { label, time, isTomorrow }
 let renderedDay = ''
 let greetingMinute = -1 // selam satırı dakikada bir, mevcut tick içinde güncellenir
@@ -104,6 +106,7 @@ document.querySelector('#app').innerHTML = `
         </span>
         <span id="ec-anlam" hidden></span>
       </button>
+      <div id="ayet-root"></div>
     </div>
     <p class="footnote">Vakitler astronomik hesapla üretilir; Diyanet takviminden ±1 dk farkedebilir.</p>
   </section>
@@ -275,6 +278,8 @@ function refresh() {
   monthly?.render()
   // Gece yarısı geçişinde "X gün kaldı" etiketleri tazelensin
   holidays?.render()
+  // Gece yarısı geçişinde günün ayeti de değişir
+  gununAyeti?.render()
   // Konum değiştiyse açık kıble overlay'inin açısı tazelensin
   qibla?.locationChanged()
 }
@@ -436,6 +441,11 @@ const player = setupPlayer()
 setupQada(document.querySelector('#qada-root'))
 dhikr = setupDhikr(document.querySelector('#view-dhikr'), player, () => nav?.push())
 quran = setupQuran(document.querySelector('#view-quran'), player, () => nav?.push())
+// Günün ayeti kartı: "suresinde aç" doğrudan ilgili ayete iner
+gununAyeti = setupGununAyeti(document.querySelector('#ayet-root'), (s, a) => {
+  showView('quran')
+  quran.openAt(s, a) // onNav'ı openSurah çağırır: tek history girdisi
+})
 monthly = setupMonthly(document.querySelector('#view-monthly'), () => location)
 // Alt-görünümlerin ‹ Geri butonları telefonun geri tuşuyla aynı yoldan gider
 holidays = setupHolidays(document.querySelector('#view-holidays'), () => history.back())

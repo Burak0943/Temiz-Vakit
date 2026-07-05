@@ -9,18 +9,40 @@ import { SURAH_NAMES_TR } from './surah-names-tr.js'
 
 const STORAGE_KEY = 'tv_dhikr'
 const TARGETS = [33, 99, 0]
+
+// Zikir setleri: aşama metinleri yalnız zikir ADLARIDIR (başlık düzeyi) —
+// dua metni/fazilet İÇERMEZ (içerik kuralı).
+const SETS = [
+  { id: 'serbest', ad: 'Serbest', asamalar: null }, // mevcut 33/99/serbest hedef sistemi
+  {
+    id: 'tesbihat',
+    ad: 'Namaz Tesbihatı',
+    asamalar: [
+      { ad: 'Sübhânallah', hedef: 33 },
+      { ad: 'Elhamdülillâh', hedef: 33 },
+      { ad: 'Allâhu Ekber', hedef: 33 },
+    ],
+  },
+  { id: 'salavat', ad: 'Salavat', asamalar: [{ ad: 'Salavat', hedef: 100 }] },
+  { id: 'istigfar', ad: 'İstiğfar', asamalar: [{ ad: 'İstiğfar', hedef: 100 }] },
+]
 const FONT_KEY = 'tv_fontsize'
 const FONT_STEPS = [16, 20, 24, 28]
 
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(STORAGE_KEY))
+    const set = SETS.find((x) => x.id === s?.set) || SETS[0]
+    const maxAsama = set.asamalar ? set.asamalar.length - 1 : 0
     return {
       count: Number.isInteger(s?.count) && s.count >= 0 ? s.count : 0,
       target: TARGETS.includes(s?.target) ? s.target : 33,
+      set: set.id,
+      asama: Number.isInteger(s?.asama) && s.asama >= 0 && s.asama <= maxAsama ? s.asama : 0,
+      bitti: s?.bitti === true,
     }
   } catch {
-    return { count: 0, target: 33 }
+    return { count: 0, target: 33, set: 'serbest', asama: 0, bitti: false }
   }
 }
 
@@ -43,6 +65,9 @@ export function setupDhikr(root, player, onNav) {
     <div id="dhikr-main">
       <h2>Zikirmatik</h2>
       <p id="dhikr-subtitle">Dijital tesbih</p>
+      <div id="dhikr-sets" role="group" aria-label="Zikir seti">
+        ${SETS.map((s) => `<button type="button" data-set="${s.id}">${s.ad}</button>`).join('')}
+      </div>
       <div id="dhikr-targets" role="group" aria-label="Hedef sayı seçimi">
         <button type="button" data-target="33">33</button>
         <button type="button" data-target="99">99</button>
@@ -50,6 +75,7 @@ export function setupDhikr(root, player, onNav) {
       </div>
       <p id="dhikr-hint">Tesbih çekmek için aşağıdaki alana dokunun</p>
       <button type="button" id="dhikr-pad" aria-label="Zikir say">
+        <span id="dhikr-stage" hidden></span>
         <span id="dhikr-count">0</span>
         <span id="dhikr-touch">Dokun</span>
         <span id="dhikr-goal"></span>
@@ -90,33 +116,79 @@ export function setupDhikr(root, player, onNav) {
   const goalEl = root.querySelector('#dhikr-goal')
   const touchEl = root.querySelector('#dhikr-touch')
   const hintEl = root.querySelector('#dhikr-hint')
+  const stageEl = root.querySelector('#dhikr-stage')
   const resetBtn = root.querySelector('#dhikr-reset')
   const targetBtns = [...root.querySelectorAll('#dhikr-targets button')]
+  const setBtns = [...root.querySelectorAll('#dhikr-sets button')]
+
+  const activeSet = () => SETS.find((x) => x.id === state.set) || SETS[0]
 
   function render() {
+    const set = activeSet()
     countEl.textContent = state.count
-    goalEl.textContent = state.target ? `Hedef sayı: ${state.target}` : 'Serbest sayım'
+    if (set.asamalar) {
+      // Setli mod: aşama etiketi ekranda, hedef seti belirler (33/99 satırı gizli)
+      const a = set.asamalar[state.asama]
+      stageEl.hidden = false
+      stageEl.textContent = set.asamalar.length > 1 ? `${a.ad} (${state.asama + 1}/${set.asamalar.length})` : a.ad
+      goalEl.textContent = state.bitti ? 'Tamamlandı' : `Hedef: ${a.hedef}`
+      root.querySelector('#dhikr-targets').hidden = true
+      pad.classList.toggle('reached', state.bitti)
+    } else {
+      stageEl.hidden = true
+      goalEl.textContent = state.target ? `Hedef sayı: ${state.target}` : 'Serbest sayım'
+      root.querySelector('#dhikr-targets').hidden = false
+      pad.classList.toggle('reached', state.target > 0 && state.count >= state.target)
+    }
     // Sayaç 0'ken yönlendirme belirginleşir: pad içinde "Dokun", üstte parlak ipucu
-    touchEl.hidden = state.count !== 0
-    hintEl.classList.toggle('fresh', state.count === 0)
-    pad.classList.toggle('reached', state.target > 0 && state.count >= state.target)
+    touchEl.hidden = state.count !== 0 || state.bitti
+    hintEl.classList.toggle('fresh', state.count === 0 && !state.bitti)
     for (const b of targetBtns) {
       const active = Number(b.dataset.target) === state.target
       b.classList.toggle('active', active)
       b.setAttribute('aria-pressed', active)
     }
+    for (const b of setBtns) {
+      const active = b.dataset.set === state.set
+      b.classList.toggle('active', active)
+      b.setAttribute('aria-pressed', active)
+    }
+  }
+
+  function celebratePad() {
+    vibrate([30, 80, 30, 80, 30])
+    pad.classList.remove('celebrate')
+    void pad.offsetWidth // animasyonu yeniden tetiklemek için reflow
+    pad.classList.add('celebrate')
   }
 
   function increment() {
+    const set = activeSet()
+    if (set.asamalar) {
+      if (state.bitti) return // set tamamlandı: sıfırlama ya da set değişimi bekler
+      state.count++
+      const a = set.asamalar[state.asama]
+      if (state.count >= a.hedef) {
+        if (state.asama < set.asamalar.length - 1) {
+          // Otomatik sıralı geçiş: sonraki aşama, sayaç baştan
+          state.asama++
+          state.count = 0
+          vibrate([30, 80, 30])
+        } else {
+          state.bitti = true
+          celebratePad()
+        }
+      } else {
+        vibrate([15])
+      }
+      save(state)
+      render()
+      return
+    }
     state.count++
     save(state)
     vibrate([15])
-    if (state.target > 0 && state.count === state.target) {
-      vibrate([30, 80, 30, 80, 30])
-      pad.classList.remove('celebrate')
-      void pad.offsetWidth // animasyonu yeniden tetiklemek için reflow
-      pad.classList.add('celebrate')
-    }
+    if (state.target > 0 && state.count === state.target) celebratePad()
     render()
   }
 
@@ -178,6 +250,18 @@ export function setupDhikr(root, player, onNav) {
     render()
   })
 
+  // Set değişimi: sayaç ve aşama baştan başlar
+  root.querySelector('#dhikr-sets').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-set]')
+    if (!btn || btn.dataset.set === state.set) return
+    state.set = btn.dataset.set
+    state.count = 0
+    state.asama = 0
+    state.bitti = false
+    save(state)
+    render()
+  })
+
   // Yanlışlıkla sıfırlamaya karşı: 1 sn basılı tutma
   let holdTimer = null
   function startHold() {
@@ -187,6 +271,8 @@ export function setupDhikr(root, player, onNav) {
       holdTimer = null
       resetBtn.classList.remove('holding')
       state.count = 0
+      state.asama = 0
+      state.bitti = false
       save(state)
       pad.classList.remove('celebrate')
       vibrate(20)

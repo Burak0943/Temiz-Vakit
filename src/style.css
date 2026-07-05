@@ -671,6 +671,67 @@ header h1 {
   color: var(--text-bright);
 }
 
+/* Zikir seti seçici */
+#dhikr-sets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+#dhikr-sets button {
+  flex: 1 1 auto;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#dhikr-sets button.active {
+  color: var(--text-bright);
+  border-color: var(--accent);
+}
+
+#dhikr-stage {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--gold);
+}
+
+/* Günün Ayeti kartı */
+#ayet-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#ayet-ar {
+  font-family: 'Amiri Quran', serif;
+  font-size: 22px;
+  line-height: 1.9;
+  color: var(--text-bright);
+  text-align: right;
+}
+
+#ayet-meal {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 /* Kerahat satırı: geri sayım kutusunda ince bilgi çizgisi */
 #kerahat-line {
   margin: 6px 0 0;
@@ -1038,7 +1099,11 @@ header h1 {
   border-bottom: none;
 }
 
-#surah-list button {
+/* Yalnız açma butonu tam satır olur; .s-check butonu (aynı li içinde) kendi
+   40px genişliğini korusun diye seçici .s-open'a daraltıldı (v2.1 regresyonu:
+   genel "#surah-list button" kuralı checkbox'ı da ezip adları gizliyordu). */
+#surah-list .s-open,
+#juz-list .s-open {
   display: flex;
   align-items: baseline;
   gap: 10px;
@@ -1052,7 +1117,8 @@ header h1 {
   cursor: pointer;
 }
 
-#surah-list button:hover {
+#surah-list .s-open:hover,
+#juz-list .s-open:hover {
   background: var(--surface-next);
 }
 
