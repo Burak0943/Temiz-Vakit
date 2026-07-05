@@ -16,7 +16,13 @@ export function localDateKey(date) {
 export function loadPrayerData() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY))
-    const data = parsed && typeof parsed === 'object' ? parsed : {}
+    const data = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+    // Gün değerleri dizi olmak zorunda: bozuk/elle düzenlenmiş kayıt (ör. hatalı
+    // yedek dosyası) açılışta renderTimes'ı çökertmesin — dizi olmayan atılır
+    for (const [day, marks] of Object.entries(data)) {
+      if (!Array.isArray(marks)) delete data[day]
+      else data[day] = marks.filter((k) => typeof k === 'string')
+    }
     return migrateSunrise(data)
   } catch {
     return {}

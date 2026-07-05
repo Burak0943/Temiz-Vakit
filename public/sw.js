@@ -1,6 +1,6 @@
 // Temiz Vakit service worker — app shell önbelleği, cache-first.
 // Vakit hesabı adhan ile tamamen yerel; uygulamanın ağ bağımlılığı yok.
-const CACHE = 'tv-v25'
+const CACHE = 'tv-v26'
 // Cevşen hat sayfası görüntüleri (kulliyat.risale.online): CORS başlığı
 // olmadığından sayfa JS'i blob okuyamaz — offline, SW'nin opak yanıt
 // önbelleğiyle sağlanır. AYRI ve KALICI cache: sürüm bump'larında silinmez,

@@ -10,6 +10,64 @@ const FONT_STEPS = [16, 20, 24, 28] // dhikr.js FONT_STEPS aynası
 const AR_FONT_KEY = 'tv_arfontsize'
 const AR_FONT_STEPS = [22, 26, 30, 34] // quran.js AR_FONT_STEPS aynası
 
+// Yedek kapsamı: tüm kullanıcı verisi localStorage'dadır (kaldığın-yer
+// konumları dahil). IndexedDB yalnız yeniden indirilebilir Kur'an metni
+// önbelleği tuttuğundan BİLİNÇLİ olarak yedeğe girmez.
+const BACKUP_KEYS = [
+  'tv_prayers',
+  'tv_dhikr',
+  'tv_qada',
+  'tv_fontsize',
+  'tv_arfontsize',
+  'tv_quran_surahs',
+  'tv_quran_pos',
+  'tv_cevsen_pos',
+  'tv_geo_name',
+  'tv_onboarded',
+]
+
+// Boyut tavanları: dürüst veri en fazla yüzlerce KB'dir; dev değerli hazırlanmış
+// yedek, kota hatasıyla kısmi yazım tetikleyip depoyu kilitleyebilirdi
+const MAX_FILE_BYTES = 1_000_000
+const MAX_VALUE_BYTES = 512_000
+
+// Anahtar başına ŞEKİL doğrulaması: yalnız tip kontrolü, hazırlanmış bir
+// yedeğin (ör. tv_prayers gün değeri dizi değilken) açılışta ana ekranı
+// çökertmesine yetmiyordu. Doğrulayıcı fırlatırsa/false dönerse dosya reddedilir.
+const VALIDATORS = {
+  tv_prayers: (s) => {
+    const o = JSON.parse(s)
+    return (
+      o && typeof o === 'object' && !Array.isArray(o) &&
+      Object.values(o).every((v) => Array.isArray(v) && v.every((x) => typeof x === 'string'))
+    )
+  },
+  tv_dhikr: (s) => {
+    const o = JSON.parse(s)
+    return o && typeof o === 'object' && !Array.isArray(o)
+  },
+  tv_qada: (s) => {
+    const o = JSON.parse(s)
+    return o && typeof o === 'object' && o.kalan && typeof o.kalan === 'object'
+  },
+  tv_fontsize: (s) => /^\d{1,3}$/.test(s),
+  tv_arfontsize: (s) => /^\d{1,3}$/.test(s),
+  tv_quran_surahs: (s) => Array.isArray(JSON.parse(s)),
+  tv_quran_pos: (s) => {
+    const o = JSON.parse(s)
+    return o && Number.isInteger(o.surah) && Number.isInteger(o.ayah)
+  },
+  tv_cevsen_pos: (s) => {
+    const o = JSON.parse(s)
+    return o && typeof o === 'object' && !Array.isArray(o)
+  },
+  tv_geo_name: (s) => {
+    const o = JSON.parse(s)
+    return o && typeof o === 'object' && typeof o.name === 'string'
+  },
+  tv_onboarded: (s) => s === '1',
+}
+
 const KAYNAKLAR = [
   'Diyanet İşleri Başkanlığı yayınları — namaz duaları',
   "AlQuran Cloud ve quran.com — Kur'an metni, meali, sesi ve Türkçe sure adları",
@@ -68,11 +126,34 @@ export function setupSettings(root, { getLocationLabel, updateLocation, showOnbo
     <h3 class="set-section">Bildirimler</h3>
     <div class="set-row set-passive"><span>Vakit bildirimleri yakında</span></div>
 
+    <h3 class="set-section">Veriler</h3>
+    <div class="set-row">
+      <span>Verilerimi Yedekle</span>
+      <button type="button" id="set-backup">İndir</button>
+    </div>
+    <div class="set-row">
+      <span>Yedekten Geri Yükle</span>
+      <button type="button" id="set-restore">Dosya Seç</button>
+      <input type="file" id="set-restore-file" accept="application/json,.json" hidden />
+    </div>
+    <p id="set-backup-note" class="set-note" hidden></p>
+
     <h3 class="set-section">Hakkında ve Kaynaklar</h3>
     <div class="set-about">
       <p id="set-version"></p>
       <ul id="set-sources"></ul>
       <p class="footnote">Vakitler astronomik hesapla üretilir; Diyanet takviminden ±1 dk farkedebilir.</p>
+    </div>
+    <div class="set-row">
+      <button type="button" id="set-privacy-toggle" class="set-link">Gizlilik</button>
+    </div>
+    <div id="set-privacy" class="set-about" hidden>
+      <p>Verileriniz (namaz işaretleri, zikir sayaçları, kaza takibi, okuma konumları, tercihler) yalnız bu cihazda tutulur. Sunucumuz, hesabınız veya bizde saklanan bir veriniz yoktur.</p>
+      <p>Konumunuz yalnız vakit hesabı için kullanılır; yer adını göstermek için koordinatlarınız OpenStreetMap Nominatim servisine gönderilir. Kur'an metin/ses ve Cevşen sayfaları ilgili servislerden indirilir.</p>
+      <p>Uygulamada reklam ve üçüncü taraf izleme yoktur.</p>
+    </div>
+    <div class="set-row">
+      <a id="set-feedback" class="set-link" href="mailto:gorus@temizvakit.example?subject=Temiz%20Vakit%20G%C3%B6r%C3%BC%C5%9F">Görüş Bildir</a>
     </div>
 
     <div class="set-row">
@@ -119,6 +200,131 @@ export function setupSettings(root, { getLocationLabel, updateLocation, showOnbo
   root.querySelector('#set-font-plus').addEventListener('click', () => step(FONT_KEY, FONT_STEPS, 1))
   root.querySelector('#set-ar-minus').addEventListener('click', () => step(AR_FONT_KEY, AR_FONT_STEPS, -1))
   root.querySelector('#set-ar-plus').addEventListener('click', () => step(AR_FONT_KEY, AR_FONT_STEPS, 1))
+
+  // --- Yedekleme / geri yükleme ---
+  function backupNote(text) {
+    const el = root.querySelector('#set-backup-note')
+    el.textContent = text
+    el.hidden = !text
+  }
+
+  root.querySelector('#set-backup').addEventListener('click', () => {
+    const veriler = {}
+    try {
+      for (const k of BACKUP_KEYS) {
+        const v = localStorage.getItem(k)
+        if (v != null) veriler[k] = v // ham dize: kayıpsız gidiş-dönüş
+      }
+    } catch {
+      backupNote('Depolamaya erişilemedi; yedek alınamadı.')
+      return
+    }
+    const d = new Date()
+    const pad = (n) => String(n).padStart(2, '0')
+    const tarih = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    const dosya = {
+      uygulama: 'temiz-vakit',
+      surum: version, // ileri uyumluluk alanı
+      tarih,
+      veriler,
+    }
+    const blob = new Blob([JSON.stringify(dosya, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `temiz-vakit-yedek-${tarih}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    backupNote(`Yedek indirildi (${Object.keys(veriler).length} kayıt).`)
+  })
+
+  const fileInput = root.querySelector('#set-restore-file')
+  root.querySelector('#set-restore').addEventListener('click', () => {
+    fileInput.value = '' // aynı dosya ikinci kez seçilebilsin
+    fileInput.click()
+  })
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files?.[0]
+    if (!f) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string' && reader.result.length > MAX_FILE_BYTES) {
+        backupNote('Dosya reddedildi: yedek dosyası olamayacak kadar büyük.')
+        return
+      }
+      let dosya
+      try {
+        dosya = JSON.parse(reader.result)
+      } catch {
+        backupNote('Dosya okunamadı: geçerli bir yedek dosyası değil.')
+        return
+      }
+      // Şema doğrulaması: uygulama imzası + yalnız bilinen anahtarlar
+      if (dosya?.uygulama !== 'temiz-vakit' || typeof dosya.veriler !== 'object' || dosya.veriler === null) {
+        backupNote('Dosya tanınmadı: Temiz Vakit yedeği değil.')
+        return
+      }
+      const keys = Object.keys(dosya.veriler)
+      const yabanci = keys.filter((k) => !BACKUP_KEYS.includes(k))
+      if (yabanci.length) {
+        backupNote(`Dosya reddedildi: bilinmeyen alan (${yabanci[0]}).`)
+        return
+      }
+      // Tip + boyut + ŞEKİL: bozuk kayıt uygulamayı açılışta çökertmesin
+      for (const k of keys) {
+        const v = dosya.veriler[k]
+        let gecerli = typeof v === 'string' && v.length <= MAX_VALUE_BYTES
+        if (gecerli) {
+          try {
+            gecerli = VALIDATORS[k](v) === true
+          } catch {
+            gecerli = false
+          }
+        }
+        if (!gecerli) {
+          backupNote(`Dosya reddedildi: bozuk kayıt (${k}).`)
+          return
+        }
+      }
+      // İçe aktarma ÖNCESİ onay
+      if (!window.confirm('Mevcut veriler yedekteki verilerle değiştirilecek. Devam edilsin mi?')) {
+        backupNote('Geri yükleme iptal edildi.')
+        return
+      }
+      // localStorage işlemsizdir: yazım öncesi anlık görüntü alınır, hata
+      // ortada patlarsa geri sarılır — kısmi/karışık durum bırakılmaz
+      const eski = {}
+      try {
+        for (const k of BACKUP_KEYS) eski[k] = localStorage.getItem(k)
+      } catch {
+        backupNote('Depolamaya erişilemedi; geri yükleme yapılmadı.')
+        return
+      }
+      try {
+        for (const k of keys) localStorage.setItem(k, dosya.veriler[k])
+      } catch {
+        try {
+          for (const k of BACKUP_KEYS) {
+            if (eski[k] == null) localStorage.removeItem(k)
+            else localStorage.setItem(k, eski[k])
+          }
+          backupNote('Depolamaya yazılamadı; önceki veriler geri getirildi.')
+        } catch {
+          backupNote('Depolamaya yazılamadı; geri yükleme tamamlanamadı.')
+        }
+        return
+      }
+      backupNote('Geri yüklendi; uygulama yenileniyor…')
+      // Tüm modüller yeni veriyle baştan kurulsun
+      setTimeout(() => window.location.reload(), 600)
+    }
+    reader.onerror = () => backupNote('Dosya okunamadı.')
+    reader.readAsText(f)
+  })
+
+  root.querySelector('#set-privacy-toggle').addEventListener('click', () => {
+    const p = root.querySelector('#set-privacy')
+    p.hidden = !p.hidden
+  })
 
   function renderLocation() {
     root.querySelector('#set-location').textContent = getLocationLabel()

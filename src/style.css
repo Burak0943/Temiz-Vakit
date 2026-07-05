@@ -1469,6 +1469,13 @@ header h1 {
   padding: 0 !important;
 }
 
+a.set-link {
+  display: block;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: inherit;
+}
+
 .set-about {
   padding: 12px 14px;
   background: var(--surface);
