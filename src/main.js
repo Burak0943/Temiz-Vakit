@@ -17,6 +17,7 @@ import { setupNav } from './nav.js'
 import { setupSettings } from './settings.js'
 import { setupOnboarding } from './onboarding.js'
 import { setupQada } from './qada.js'
+import { kerahatWindows, activeKerahat } from './kerahat.js'
 import { setupEsma, esmaForDate } from './esma.js'
 import { setupServiceWorker } from './update.js'
 import { setupQibla } from './qibla.js'
@@ -60,6 +61,7 @@ let renderedDay = ''
 let greetingMinute = -1 // selam satırı dakikada bir, mevcut tick içinde güncellenir
 let lastToday = []
 let lastNext = null
+let kerahatW = [] // bugünün kerahat pencereleri (refresh'te hesaplanır)
 let prayerData = loadPrayerData()
 
 document.querySelector('#app').innerHTML = `
@@ -80,6 +82,7 @@ document.querySelector('#app').innerHTML = `
     <section id="countdown-box">
       <p id="next-label"></p>
       <p id="countdown">--:--:--</p>
+      <p id="kerahat-line" hidden></p>
     </section>
     <ul id="times"></ul>
     <p id="streak"></p>
@@ -230,6 +233,18 @@ function renderHolidayCard(now) {
     days === 0 ? 'Bugün' : `${next.date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} · ${days} gün`
 }
 
+// Kerahat satırı: aktif pencere varsa bitiş saatiyle tek satır bilgi
+function updateKerahat(now) {
+  const el = document.querySelector('#kerahat-line')
+  const w = activeKerahat(kerahatW, now)
+  if (!w) {
+    el.hidden = true
+    return
+  }
+  el.hidden = false
+  el.textContent = `Kerahat vakti (${w.etiket}) · ${timeFormat.format(w.end)}'e kadar`
+}
+
 function refresh() {
   const now = new Date()
   const { today, next } = findNext(now)
@@ -237,6 +252,9 @@ function refresh() {
   renderedDay = now.toDateString()
   lastToday = today
   lastNext = next
+  const byKey = (k) => today.find((p) => p.key === k).time
+  kerahatW = kerahatWindows({ sunrise: byKey('sunrise'), dhuhr: byKey('dhuhr'), maghrib: byKey('maghrib') })
+  updateKerahat(now)
 
   document.querySelector('#greeting').textContent = greetingText(now, target)
   greetingMinute = Math.floor(now.getTime() / 60000)
@@ -272,6 +290,7 @@ function tick() {
     if (minuteKey !== greetingMinute) {
       greetingMinute = minuteKey
       document.querySelector('#greeting').textContent = greetingText(now, target)
+      updateKerahat(now) // kerahat satırı da dakikalık tazelenir
     }
   }
 }

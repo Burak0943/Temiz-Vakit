@@ -126,6 +126,21 @@ export async function getStoredSurahNumbers() {
   }
 }
 
+// Cüz sınırları: AlQuran Cloud /meta ucundan (ezber tablo YOK). Statik veri
+// olduğundan localStorage'da kalıcı önbellek yeterli.
+const JUZ_KEY = 'tv_quran_juz'
+
+export async function getJuzList() {
+  const cached = readStore(JUZ_KEY)
+  if (Array.isArray(cached) && cached.length === 30) return cached
+  const data = await getJson(`${BASE}/meta`)
+  const refs = data.juzs?.references
+  if (!Array.isArray(refs) || refs.length !== 30) throw new Error(FRIENDLY)
+  const list = refs.map((r, i) => ({ no: i + 1, surah: r.surah, ayah: r.ayah }))
+  writeStore(JUZ_KEY, list)
+  return list
+}
+
 export function getPosition() {
   const p = readStore(POS_KEY)
   return p && Number.isInteger(p.surah) && Number.isInteger(p.ayah) ? p : null

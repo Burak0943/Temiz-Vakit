@@ -8,6 +8,7 @@ import {
   getPosition,
   savePosition,
   getStoredSurahNumbers,
+  getJuzList,
 } from './quran-api.js'
 import { SURAH_NAMES_TR } from './surah-names-tr.js'
 import { createAyahCard } from './ayah-card.js'
@@ -19,6 +20,37 @@ const trName = (number) => SURAH_NAMES_TR[number - 1] || `Sure ${number}`
 const AR_FONT_KEY = 'tv_arfontsize'
 const AR_FONT_STEPS = [22, 26, 30, 34]
 
+// Hatim takibi: elle işaretlenen + sure sonuna ulaşınca otomatik işaretlenen
+// sureler. Veri: tv_hatim -> { okundu: [sure numaraları] }
+const HATIM_KEY = 'tv_hatim'
+
+function loadHatim() {
+  try {
+    const o = JSON.parse(localStorage.getItem(HATIM_KEY))
+    return new Set(Array.isArray(o?.okundu) ? o.okundu.filter(Number.isInteger) : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function saveHatim(set) {
+  try {
+    localStorage.setItem(HATIM_KEY, JSON.stringify({ okundu: [...set] }))
+  } catch {
+    // yazılamasa da oturum içinde çalışır
+  }
+}
+
+// Diakritik duyarsız Türkçe arama anahtarı: "yasin" -> Yâsîn eşleşir.
+// NFD ayrıştırması â/î/û/ş/ç/ğ/ö/ü işaretlerini soyar; noktasız ı ayrıca eşlenir.
+function normTr(s) {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replaceAll('ı', 'i')
+}
+
 export function setupQuran(root, player, onNav) {
   root.innerHTML = `
     <div id="library-main">
@@ -26,6 +58,7 @@ export function setupQuran(root, player, onNav) {
       <button type="button" class="lib-card" id="lib-quran">
         <span class="lib-title">Kur'an-ı Kerim</span>
         <span class="lib-sub">114 sure · sesli</span>
+        <span class="lib-progress" id="lib-hatim" hidden></span>
       </button>
       <button type="button" id="lib-quran-resume" class="lib-resume" hidden></button>
       <button type="button" class="lib-card" id="lib-cevsen">
@@ -37,9 +70,15 @@ export function setupQuran(root, player, onNav) {
     <div id="quran-main" hidden>
       <button type="button" id="quran-back">‹ Geri</button>
       <h2>Kur'an-ı Kerim</h2>
+      <div id="quran-seg" role="group" aria-label="Liste türü">
+        <button type="button" id="seg-sureler" class="active" aria-pressed="true">Sureler</button>
+        <button type="button" id="seg-cuzler" aria-pressed="false">Cüzler</button>
+      </div>
+      <input id="surah-search" type="search" placeholder="Sure ara (ad veya numara)" aria-label="Sure ara" />
       <p id="quran-status" hidden></p>
       <button type="button" id="quran-retry" hidden>Tekrar dene</button>
       <ul id="surah-list"></ul>
+      <ul id="juz-list" hidden></ul>
     </div>
     <div id="quran-reader" hidden>
       <div id="qr-top">
@@ -81,6 +120,8 @@ export function setupQuran(root, player, onNav) {
   let surahList = null
   let openSurahNo = null
   let openDetail = null
+  let hatim = loadHatim()
+  let juzLoaded = false
 
   // --- Arapça yazı boyutu: dualardakiyle aynı desen, ayrı anahtar ---
   function loadArFont() {
@@ -135,6 +176,7 @@ export function setupQuran(root, player, onNav) {
     } else {
       qbtn.hidden = true
     }
+    renderHatimMarks() // kitaplık hatim satırı da tazelensin
     const cbtn = root.querySelector('#lib-cevsen-resume')
     const info = cevsen.getResumeInfo()
     if (info) {
@@ -192,8 +234,24 @@ export function setupQuran(root, player, onNav) {
     const frag = document.createDocumentFragment()
     for (const s of surahList) {
       const li = document.createElement('li')
+      // Arama anahtarı: numara + Türkçe ad + İngilizce ad (diakritik duyarsız)
+      li.dataset.search = normTr(`${s.number} ${trName(s.number)} ${s.name}`)
+      // Hatim onay kutusu: "bu sureyi okudum" — satırı açmadan işaretlenir
+      const check = document.createElement('button')
+      check.type = 'button'
+      check.className = 's-check'
+      check.dataset.surah = s.number
+      check.setAttribute('role', 'checkbox')
+      check.setAttribute('aria-label', `${trName(s.number)} suresini okudum olarak işaretle`)
+      check.addEventListener('click', () => {
+        if (hatim.has(s.number)) hatim.delete(s.number)
+        else hatim.add(s.number)
+        saveHatim(hatim)
+        renderHatimMarks()
+      })
       const btn = document.createElement('button')
       btn.type = 'button'
+      btn.className = 's-open'
       // API/önbellek kaynaklı metinler innerHTML yerine textContent ile basılır
       const no = document.createElement('span')
       no.className = 's-no'
@@ -214,14 +272,102 @@ export function setupQuran(root, player, onNav) {
       stored.hidden = true
       btn.append(no, nm, stored, meta)
       btn.addEventListener('click', () => openSurah(s.number))
-      li.appendChild(btn)
+      li.append(check, btn)
       frag.appendChild(li)
     }
     root.querySelector('#surah-list').replaceChildren(frag)
     renderLibResumes()
     markStoredBadges()
+    renderHatimMarks()
+    applySearch()
   }
-  retryBtn.addEventListener('click', loadList)
+  // Tekrar dene: aktif segmente göre ilgili listeyi yükler
+  retryBtn.addEventListener('click', () => {
+    if (root.querySelector('#juz-list').hidden) loadList()
+    else loadJuz()
+  })
+
+  // --- Hatim işaretleri + kitaplık ilerlemesi ---
+  function renderHatimMarks() {
+    for (const el of root.querySelectorAll('.s-check')) {
+      const on = hatim.has(Number(el.dataset.surah))
+      el.classList.toggle('checked', on)
+      el.setAttribute('aria-checked', on)
+    }
+    const line = root.querySelector('#lib-hatim')
+    if (line) {
+      const n = hatim.size
+      line.textContent = n > 0 ? `Hatim: ${n}/114 sure · %${Math.round((n / 114) * 100)}` : ''
+      line.hidden = n === 0
+    }
+  }
+
+  // --- Sure arama: ad (diakritik duyarsız) veya numara ---
+  const searchInput = root.querySelector('#surah-search')
+  function applySearch() {
+    const q = normTr(searchInput.value.trim())
+    for (const li of root.querySelectorAll('#surah-list li')) {
+      li.hidden = q !== '' && !li.dataset.search.includes(q)
+    }
+  }
+  searchInput.addEventListener('input', applySearch)
+
+  // --- Sureler | Cüzler segmenti ---
+  const segSureler = root.querySelector('#seg-sureler')
+  const segCuzler = root.querySelector('#seg-cuzler')
+  const juzListEl = root.querySelector('#juz-list')
+  function setSegment(cuz) {
+    segSureler.classList.toggle('active', !cuz)
+    segSureler.setAttribute('aria-pressed', !cuz)
+    segCuzler.classList.toggle('active', cuz)
+    segCuzler.setAttribute('aria-pressed', cuz)
+    root.querySelector('#surah-list').hidden = cuz
+    searchInput.hidden = cuz
+    juzListEl.hidden = !cuz
+    if (cuz && !juzLoaded) loadJuz()
+  }
+  segSureler.addEventListener('click', () => setSegment(false))
+  segCuzler.addEventListener('click', () => setSegment(true))
+
+  async function loadJuz() {
+    qrStatusInline('Cüz listesi yükleniyor…')
+    let juz
+    try {
+      juz = await getJuzList()
+    } catch (err) {
+      qrStatusInline(err.message, true)
+      return
+    }
+    qrStatusInline('')
+    const frag = document.createDocumentFragment()
+    for (const j of juz) {
+      const li = document.createElement('li')
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 's-open'
+      const no = document.createElement('span')
+      no.className = 's-no'
+      no.textContent = j.no
+      const nm = document.createElement('span')
+      nm.className = 's-name'
+      nm.textContent = `${j.no}. Cüz`
+      const meta = document.createElement('span')
+      meta.className = 's-meta'
+      meta.textContent = `${j.surah}. ${trName(j.surah)} · ${j.ayah}. ayetten`
+      btn.append(no, nm, meta)
+      btn.addEventListener('click', () => openSurah(j.surah, j.ayah))
+      li.appendChild(btn)
+      frag.appendChild(li)
+    }
+    juzListEl.replaceChildren(frag)
+    juzLoaded = true
+  }
+
+  function qrStatusInline(text, isError = false) {
+    statusEl.hidden = !text
+    statusEl.textContent = text
+    retryBtn.hidden = !isError
+  }
 
   // Cihazda kayıtlı sureler için küçük gri rozet; okuyucudan dönüşte tazelenir
   async function markStoredBadges() {
@@ -293,7 +439,22 @@ export function setupQuran(root, player, onNav) {
   // Okuyucuyu kapatır; hangi görünümün açılacağına ÇAĞIRAN karar verir
   // (geri = kitaplık ya da sure listesi — history girdisi belirler)
   function closeReader() {
-    if (openSurahNo && openDetail) savePosition(openSurahNo, topVisibleAyah())
+    if (openSurahNo && openDetail) {
+      savePosition(openSurahNo, topVisibleAyah())
+      // Sure sonuna ulaşıldıysa hatim işareti otomatik konur (elle kaldırılabilir).
+      // Ölçüt "en ileri GÖRÜNÜR ayet": kısa surelerde son ayet hiç en üste
+      // gelemez, bu yüzden en alttaki görünür kart esas alınır.
+      const cards = ayahsEl.children
+      const last = cards[cards.length - 1]
+      const sonGorunur =
+        last && last.getBoundingClientRect().top < window.innerHeight &&
+        last.getBoundingClientRect().bottom > 0
+      if (sonGorunur && !hatim.has(openSurahNo)) {
+        hatim.add(openSurahNo)
+        saveHatim(hatim)
+        renderHatimMarks()
+      }
+    }
     openSurahNo = null
     openDetail = null
     reader.hidden = true

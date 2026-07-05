@@ -24,6 +24,8 @@ const BACKUP_KEYS = [
   'tv_cevsen_pos',
   'tv_geo_name',
   'tv_onboarded',
+  'tv_hatim',
+  'tv_quran_juz',
 ]
 
 // Boyut tavanları: dürüst veri en fazla yüzlerce KB'dir; dev değerli hazırlanmış
@@ -66,6 +68,14 @@ const VALIDATORS = {
     return o && typeof o === 'object' && typeof o.name === 'string'
   },
   tv_onboarded: (s) => s === '1',
+  tv_hatim: (s) => {
+    const o = JSON.parse(s)
+    return o && Array.isArray(o.okundu) && o.okundu.every(Number.isInteger)
+  },
+  tv_quran_juz: (s) => {
+    const o = JSON.parse(s)
+    return Array.isArray(o) && o.length === 30
+  },
 }
 
 const KAYNAKLAR = [
@@ -135,6 +145,10 @@ export function setupSettings(root, { getLocationLabel, updateLocation, showOnbo
       <span>Yedekten Geri Yükle</span>
       <button type="button" id="set-restore">Dosya Seç</button>
       <input type="file" id="set-restore-file" accept="application/json,.json" hidden />
+    </div>
+    <div class="set-row">
+      <span>Hatim ilerlemesini sıfırla</span>
+      <button type="button" id="set-hatim-reset">Sıfırla</button>
     </div>
     <p id="set-backup-note" class="set-note" hidden></p>
 
@@ -319,6 +333,17 @@ export function setupSettings(root, { getLocationLabel, updateLocation, showOnbo
     }
     reader.onerror = () => backupNote('Dosya okunamadı.')
     reader.readAsText(f)
+  })
+
+  root.querySelector('#set-hatim-reset').addEventListener('click', () => {
+    if (!window.confirm('Hatim ilerlemesi (okundu işaretleri) silinecek. Devam edilsin mi?')) return
+    try {
+      localStorage.removeItem('tv_hatim')
+      backupNote('Hatim ilerlemesi sıfırlandı; uygulama yenileniyor…')
+      setTimeout(() => window.location.reload(), 600)
+    } catch {
+      backupNote('Sıfırlanamadı: depolamaya erişilemedi.')
+    }
   })
 
   root.querySelector('#set-privacy-toggle').addEventListener('click', () => {
