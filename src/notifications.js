@@ -163,7 +163,7 @@ export function setupNotifications({ onFire, getLocation }) {
   function fire(label) {
     if (notifySupported() && Notification.permission === 'granted') {
       try {
-        new Notification('Temiz Vakit', {
+        new Notification('Nur Vakti', {
           body: prefs.offset > 0 ? `${label} vaktine ${prefs.offset} dakika` : `${label} vakti girdi`,
           tag: 'tv-prayer', // üst üste yığılmasın
         })

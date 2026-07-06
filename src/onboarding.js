@@ -70,7 +70,7 @@ export function setupOnboarding({ requestLocation, getLocationLabel, requestNoti
     let actions = ''
     if (cardIndex === 0) {
       body = `
-        <h2>Temiz Vakit'e hoş geldiniz</h2>
+        <h2>Nur Vakti'ye hoş geldiniz</h2>
         <p>Reklamsız, sade bir ibadet yol arkadaşı.</p>`
       actions = '<button type="button" id="ob-next">İleri</button>'
     } else if (cardIndex === 1) {

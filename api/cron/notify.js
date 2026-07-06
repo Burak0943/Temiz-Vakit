@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       if (already) continue
       await kv.set(sentKey, 1, { ex: 7200 })
       const body = d.offset > 0 ? `${d.label} vaktine ${d.offset} dakika` : `${d.label} vakti girdi`
-      const payload = JSON.stringify({ title: 'Temiz Vakit', body, url: '/' })
+      const payload = JSON.stringify({ title: 'Nur Vakti', body, url: '/' })
       try {
         await webpush.sendNotification(sub.subscription, payload)
         sent++

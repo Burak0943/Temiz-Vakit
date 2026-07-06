@@ -1,6 +1,6 @@
 // Temiz Vakit service worker — app shell önbelleği, cache-first.
 // Vakit hesabı adhan ile tamamen yerel; uygulamanın ağ bağımlılığı yok.
-const CACHE = 'tv-v30'
+const CACHE = 'tv-v31'
 // Cevşen hat sayfası görüntüleri (kulliyat.risale.online): CORS başlığı
 // olmadığından sayfa JS'i blob okuyamaz — offline, SW'nin opak yanıt
 // önbelleğiyle sağlanır. AYRI ve KALICI cache: sürüm bump'larında silinmez,
@@ -66,7 +66,7 @@ self.addEventListener('push', (event) => {
   } catch {
     data = {}
   }
-  const title = data.title || 'Temiz Vakit'
+  const title = data.title || 'Nur Vakti'
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || '',

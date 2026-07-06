@@ -215,7 +215,7 @@ export function setupSettings(
       <p>Uygulamada reklam ve üçüncü taraf izleme yoktur.</p>
     </div>
     <div class="set-row">
-      <a id="set-feedback" class="set-link" href="mailto:gorus@temizvakit.example?subject=Temiz%20Vakit%20G%C3%B6r%C3%BC%C5%9F">Görüş Bildir</a>
+      <a id="set-feedback" class="set-link" href="mailto:gorus@temizvakit.example?subject=Nur%20Vakti%20G%C3%B6r%C3%BC%C5%9F">Görüş Bildir</a>
     </div>
 
     <div class="set-row">
@@ -230,7 +230,7 @@ export function setupSettings(
   })
   root.querySelector('#set-onboarding').addEventListener('click', () => showOnboarding())
 
-  root.querySelector('#set-version').textContent = `Temiz Vakit · sürüm ${version}`
+  root.querySelector('#set-version').textContent = `Nur Vakti · sürüm ${version}`
   const srcList = root.querySelector('#set-sources')
   for (const k of KAYNAKLAR) {
     const li = document.createElement('li')
@@ -293,7 +293,7 @@ export function setupSettings(
     const blob = new Blob([JSON.stringify(dosya, null, 2)], { type: 'application/json' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `temiz-vakit-yedek-${tarih}.json`
+    a.download = `nur-vakti-yedek-${tarih}.json`
     a.click()
     URL.revokeObjectURL(a.href)
     backupNote(`Yedek indirildi (${Object.keys(veriler).length} kayıt).`)
@@ -322,7 +322,7 @@ export function setupSettings(
       }
       // Şema doğrulaması: uygulama imzası + yalnız bilinen anahtarlar
       if (dosya?.uygulama !== 'temiz-vakit' || typeof dosya.veriler !== 'object' || dosya.veriler === null) {
-        backupNote('Dosya tanınmadı: Temiz Vakit yedeği değil.')
+        backupNote('Dosya tanınmadı: Nur Vakti yedeği değil.')
         return
       }
       const keys = Object.keys(dosya.veriler)
