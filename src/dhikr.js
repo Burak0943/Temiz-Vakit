@@ -6,6 +6,7 @@ import { PRAYERS_DATA } from './prayers-data.js'
 import { getSurahDetail } from './quran-api.js'
 import { createAyahCard } from './ayah-card.js'
 import { SURAH_NAMES_TR } from './surah-names-tr.js'
+import { shareAyah } from './ayah-share.js'
 
 const STORAGE_KEY = 'tv_dhikr'
 const TARGETS = [33, 99, 0]
@@ -479,7 +480,12 @@ export function setupDhikr(root, player, onNav) {
       h.textContent = s.title
       frag.appendChild(h)
       s.ayahs.forEach((a, idx) => {
-        const card = createAyahCard(a, s.number, () => playNazar(s, idx))
+        const card = createAyahCard(
+          a,
+          s.number,
+          () => playNazar(s, idx),
+          () => shareAyah(a, SURAH_NAMES_TR[s.number - 1] || `Sure ${s.number}`, s.number),
+        )
         s.cards.push(card)
         frag.appendChild(card)
       })

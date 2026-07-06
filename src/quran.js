@@ -14,6 +14,7 @@ import { SURAH_NAMES_TR } from './surah-names-tr.js'
 import { createAyahCard } from './ayah-card.js'
 import { setupCevsen } from './cevsen.js'
 import { wakeRef, wakeUnref } from './wakelock.js'
+import { shareAyah } from './ayah-share.js'
 
 // Birincil görünen ad Türkçe (kaynak: quran.com v4); dizi dışı kalırsa güvenli geri dönüş
 const trName = (number) => SURAH_NAMES_TR[number - 1] || `Sure ${number}`
@@ -436,7 +437,12 @@ export function setupQuran(root, player, onNav) {
     jumpInput.value = ''
     const frag = document.createDocumentFragment()
     detail.ayahs.forEach((a, index) => {
-      const card = createAyahCard(a, detail.number, () => playFrom(detail, index))
+      const card = createAyahCard(
+        a,
+        detail.number,
+        () => playFrom(detail, index),
+        () => shareAyah(a, trName(detail.number), detail.number),
+      )
       card.id = `ayah-${a.no}` // atlama/vurgu için; kart bileşeni id'siz üretir
       frag.appendChild(card)
     })

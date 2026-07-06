@@ -773,12 +773,7 @@ header h1 {
   border-color: var(--accent);
 }
 
-#surah-list li,
-#juz-list li {
-  display: flex;
-  align-items: stretch;
-}
-
+/* .s-check + .s-open düzeni (kart kuralı aşağıda #surah-list li'de) */
 .s-check {
   flex-shrink: 0;
   width: 40px;
@@ -1081,22 +1076,25 @@ header h1 {
   white-space: nowrap;
 }
 
-#surah-list {
+/* Sure listesi: her satır ayrı kart (kartlaştırıldı — v2.6) */
+#surah-list,
+#juz-list {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#surah-list li,
+#juz-list li {
+  display: flex;
+  align-items: stretch;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
-}
-
-#surah-list li {
-  border-bottom: 1px solid var(--border);
-}
-
-#surah-list li:last-child {
-  border-bottom: none;
 }
 
 /* Yalnız açma butonu tam satır olur; .s-check butonu (aynı li içinde) kendi
@@ -1213,12 +1211,22 @@ header h1 {
 }
 
 .ayah-ar {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   font-family: 'Amiri Quran', serif;
   font-size: var(--ar-size, 26px);
-  line-height: 2;
+  /* Mushaf tipografisi: bol satır yüksekliği Amiri mürekkep taşmasını önler
+     (v1.4.3 dersi: kutu ölçüsü değil, mürekkep uzantısı belirleyici) */
+  line-height: 2.15;
   color: var(--text-bright);
   text-align: right;
+  word-spacing: 0.04em;
+}
+
+/* Ayet sonu işareti: süslü parantez içinde Arapça rakam (amber) */
+.ayah-num {
+  color: var(--gold);
+  font-size: 0.82em;
+  white-space: nowrap;
 }
 
 .ayah-tl {
@@ -1244,14 +1252,30 @@ header h1 {
   font-variant-numeric: tabular-nums;
 }
 
-.ayah-play {
-  padding: 4px 8px;
-  color: var(--gold);
+.ayah-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ayah-play,
+.ayah-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  min-height: 32px;
   background: none;
   border: 1px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
-  line-height: 0;
+}
+
+.ayah-play {
+  color: var(--gold);
+}
+
+.ayah-share-btn {
+  color: var(--accent);
 }
 
 .ayah-play svg {
@@ -1259,6 +1283,18 @@ header h1 {
   height: 16px;
   fill: currentColor;
   stroke: none;
+}
+
+.ayah-share-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+
+.ayah-btn-label {
+  font-size: 12px;
 }
 
 .ayah-card.playing {
@@ -1305,8 +1341,7 @@ header h1 {
   line-height: 1;
 }
 
-.ayah-play-label {
-  font-size: 12px;
+.ayah-btn-label {
   color: var(--text-dim);
 }
 
