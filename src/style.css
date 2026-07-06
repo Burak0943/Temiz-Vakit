@@ -1278,6 +1278,27 @@ header h1 {
   color: var(--accent);
 }
 
+.ayah-fav {
+  color: var(--text-dim);
+}
+
+.ayah-fav.on {
+  color: var(--gold);
+}
+
+.ayah-fav svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.ayah-fav.on svg {
+  fill: currentColor;
+}
+
 .ayah-play svg {
   width: 16px;
   height: 16px;
@@ -1309,15 +1330,21 @@ header h1 {
   color: var(--gold);
 }
 
+/* Dinle + Ezber eylem satırı */
+#qr-actions {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
 /* Büyük "Sureyi Dinle": belirgin amber dolgu, 44px dokunma hedefi */
 #qr-listen {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 100%;
+  flex: 1;
   min-height: 44px;
-  margin: 0 0 14px;
   font: inherit;
   font-size: 16px;
   font-weight: 600;
@@ -1325,6 +1352,105 @@ header h1 {
   background: var(--gold);
   border: none;
   border-radius: 10px;
+  cursor: pointer;
+}
+
+#qr-ezber {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#qr-ezber-panel {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.ez-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.ez-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ez-row input {
+  width: 64px;
+  min-height: 40px;
+  padding: 4px 8px;
+  font: inherit;
+  text-align: center;
+  color: var(--text);
+  background: var(--surface-next);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+#ez-go {
+  flex: 1;
+  min-height: 40px;
+  font: inherit;
+  color: var(--accent);
+  background: var(--surface-next);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Favori ayetler görünümü */
+#fav-back {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+#fav-view h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+#fav-empty,
+#fav-status {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.fav-entry {
+  margin-bottom: 12px;
+}
+
+.fav-open {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 4px 2px;
   cursor: pointer;
 }
 

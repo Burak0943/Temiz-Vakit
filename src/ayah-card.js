@@ -3,7 +3,7 @@
 const AR_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩']
 const toArabicDigits = (n) => String(n).replace(/\d/g, (d) => AR_DIGITS[+d])
 
-export function createAyahCard(a, surahNumber, onPlay, onShare) {
+export function createAyahCard(a, surahNumber, onPlay, onShare, onFav, isFav) {
   const card = document.createElement('article')
   card.className = 'ayah-card'
   const ar = document.createElement('p')
@@ -37,6 +37,21 @@ export function createAyahCard(a, surahNumber, onPlay, onShare) {
   meta.appendChild(label)
   const actions = document.createElement('span')
   actions.className = 'ayah-actions'
+  if (onFav) {
+    const favBtn = document.createElement('button')
+    favBtn.type = 'button'
+    favBtn.className = `ayah-fav${isFav ? ' on' : ''}`
+    favBtn.setAttribute('aria-label', `Ayet ${a.no} favori`)
+    favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false')
+    favBtn.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.3l-5.4 3 1-6-4.4-4.2 6-.9L12 3.8l2.8 5.4 6 .9-4.4 4.2 1 6z"/></svg>'
+    favBtn.addEventListener('click', () => {
+      const nowOn = onFav() // çağıran taraf toggle eder, YENİ durumu döndürür
+      favBtn.classList.toggle('on', nowOn)
+      favBtn.setAttribute('aria-pressed', nowOn ? 'true' : 'false')
+    })
+    actions.appendChild(favBtn)
+  }
   if (onShare) {
     const shareBtn = document.createElement('button')
     shareBtn.type = 'button'

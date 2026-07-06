@@ -15,6 +15,7 @@ import { createAyahCard } from './ayah-card.js'
 import { setupCevsen } from './cevsen.js'
 import { wakeRef, wakeUnref } from './wakelock.js'
 import { shareAyah } from './ayah-share.js'
+import { loadFavorites, isFavorite, toggleFavorite } from './favorites.js'
 
 // Birincil görünen ad Türkçe (kaynak: quran.com v4); dizi dışı kalırsa güvenli geri dönüş
 const trName = (number) => SURAH_NAMES_TR[number - 1] || `Sure ${number}`
@@ -73,6 +74,17 @@ export function setupQuran(root, player, onNav) {
         <span class="lib-sub">Hayrat hat sayfaları</span>
       </button>
       <button type="button" id="lib-cevsen-resume" class="lib-resume" hidden></button>
+      <button type="button" class="lib-card" id="lib-fav">
+        <span class="lib-title">Favori Ayetler</span>
+        <span class="lib-sub" id="lib-fav-sub">Beğendiğin ayetleri sakla</span>
+      </button>
+    </div>
+    <div id="fav-view" hidden>
+      <button type="button" id="fav-back">‹ Geri</button>
+      <h2>Favori Ayetler</h2>
+      <p id="fav-empty" hidden>Henüz favori ayet yok. Okuma ekranında yıldıza dokunarak ekleyebilirsin.</p>
+      <p id="fav-status" hidden></p>
+      <div id="fav-list"></div>
     </div>
     <div id="quran-main" hidden>
       <button type="button" id="quran-back">‹ Geri</button>
@@ -98,10 +110,23 @@ export function setupQuran(root, player, onNav) {
         </div>
       </div>
       <h2 id="qr-title"></h2>
-      <button type="button" id="qr-listen" hidden>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"/></svg>
-        <span>Sureyi Dinle</span>
-      </button>
+      <p id="qr-intro" class="footnote" hidden></p>
+      <div id="qr-actions" hidden>
+        <button type="button" id="qr-listen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"/></svg>
+          <span>Sureyi Dinle</span>
+        </button>
+        <button type="button" id="qr-ezber">Ezber Modu</button>
+      </div>
+      <div id="qr-ezber-panel" hidden>
+        <span class="ez-label">Ezber: ayet aralığını döngüyle dinle</span>
+        <div class="ez-row">
+          <input id="ez-start" type="number" min="1" inputmode="numeric" aria-label="Başlangıç ayet" placeholder="Baş" />
+          <span>–</span>
+          <input id="ez-end" type="number" min="1" inputmode="numeric" aria-label="Bitiş ayet" placeholder="Bitiş" />
+          <button type="button" id="ez-go">Döngüyle Dinle</button>
+        </div>
+      </div>
       <p id="qr-status" hidden></p>
       <p id="qr-offline-note" class="footnote" hidden>İndirilen sureler çevrimdışı okunabilir.</p>
       <div id="qr-ayahs"></div>
@@ -120,6 +145,13 @@ export function setupQuran(root, player, onNav) {
   const retryBtn = root.querySelector('#quran-retry')
   const qrStatus = root.querySelector('#qr-status')
   const listenBtn = root.querySelector('#qr-listen')
+  const qrActions = root.querySelector('#qr-actions')
+  const introEl = root.querySelector('#qr-intro')
+  const ezberBtn = root.querySelector('#qr-ezber')
+  const ezberPanel = root.querySelector('#qr-ezber-panel')
+  const ezStart = root.querySelector('#ez-start')
+  const ezEnd = root.querySelector('#ez-end')
+  const favViewEl = root.querySelector('#fav-view')
   const jumpInput = root.querySelector('#qr-jump')
   const fontMinus = root.querySelector('#qr-font-minus')
   const fontPlus = root.querySelector('#qr-font-plus')
@@ -127,6 +159,7 @@ export function setupQuran(root, player, onNav) {
   let surahList = null
   let openSurahNo = null
   let openDetail = null
+  let favorites = loadFavorites()
   let hatim = loadHatim()
   let juzLoaded = false
   let readerLock = false // okuma ekranı açıkken ekran uyanık (wake lock ref'i)
@@ -202,7 +235,9 @@ export function setupQuran(root, player, onNav) {
   function showLibrary() {
     main.hidden = true
     reader.hidden = true
+    favViewEl.hidden = true
     renderLibResumes()
+    renderLibFavSub()
     libraryEl.hidden = false
     window.scrollTo(0, 0)
   }
@@ -211,6 +246,7 @@ export function setupQuran(root, player, onNav) {
     // sure listesi görünümü
     libraryEl.hidden = true
     reader.hidden = true
+    favViewEl.hidden = true
     main.hidden = false
     window.scrollTo(0, 0)
   }
@@ -404,6 +440,7 @@ export function setupQuran(root, player, onNav) {
   async function openSurah(number, targetAyah = null) {
     openSurahNo = number
     libraryEl.hidden = true // devam kartından doğrudan açılışta kitaplık kapanır
+    favViewEl.hidden = true // favori listesinden açılışta o da kapanır
     main.hidden = true
     reader.hidden = false
     if (!readerLock) {
@@ -412,8 +449,18 @@ export function setupQuran(root, player, onNav) {
     }
     onNav?.() // görünüm geçişi history'ye yazılsın (popstate uygularken bastırılır)
     root.querySelector('#qr-title').textContent = `${number}. ${trName(number)}`
+    // Sure tanıtımı: Mekkî/Medenî + ayet sayısı (AlQuran Cloud verisinden).
+    // Konu özeti: Türkçe API kaynağı bulunamadığından gösterilmez (raporlandı).
+    const meta = surahList?.find((x) => x.number === number)
+    if (meta) {
+      introEl.hidden = false
+      introEl.textContent = `${meta.place} sure · ${meta.ayahs} ayet`
+    } else {
+      introEl.hidden = true
+    }
     ayahsEl.replaceChildren()
-    listenBtn.hidden = true // içerik gelmeden büyük dinle butonu görünmesin
+    qrActions.hidden = true // içerik gelmeden dinle/ezber görünmesin
+    ezberPanel.hidden = true
     qrStatus.hidden = false
     qrStatus.textContent = 'Yükleniyor…'
     arFont = loadArFont() // Ayarlar'dan değişmiş olabilir: her açılışta taze oku
@@ -430,9 +477,11 @@ export function setupQuran(root, player, onNav) {
     openDetail = detail
     qrStatus.hidden = true
     root.querySelector('#qr-offline-note').hidden = true
-    // Büyük "Sureyi Dinle": 1. ayetten başlatır (küçük kart butonları da durur)
-    listenBtn.hidden = !detail.ayahs.some((a) => a.ses)
+    // Dinle/Ezber: yalnız ses varsa (ezber döngüsü de sese dayanır)
+    const hasAudio = detail.ayahs.some((a) => a.ses)
+    qrActions.hidden = !hasAudio
     listenBtn.onclick = () => playFrom(detail, 0)
+    ezStart.max = ezEnd.max = String(detail.ayahs.length)
     jumpInput.max = String(detail.ayahs.length)
     jumpInput.value = ''
     const frag = document.createDocumentFragment()
@@ -442,6 +491,13 @@ export function setupQuran(root, player, onNav) {
         detail.number,
         () => playFrom(detail, index),
         () => shareAyah(a, trName(detail.number), detail.number),
+        () => {
+          // toggle: yeni durumu döndür (ayah-card butonu görünümü günceller)
+          favorites = toggleFavorite(favorites, detail.number, a.no)
+          renderLibFavSub()
+          return isFavorite(favorites, detail.number, a.no)
+        },
+        isFavorite(favorites, detail.number, a.no),
       )
       card.id = `ayah-${a.no}` // atlama/vurgu için; kart bileşeni id'siz üretir
       frag.appendChild(card)
@@ -534,7 +590,109 @@ export function setupQuran(root, player, onNav) {
     })
   }
 
+  // --- Ezber modu: seçilen ayet aralığını sesli DÖNGÜyle dinle ---
+  ezberBtn.addEventListener('click', () => {
+    ezberPanel.hidden = !ezberPanel.hidden
+    if (!ezberPanel.hidden && openDetail) {
+      // Varsayılan aralık: kayıtlı konumdan sure sonuna değil, makul küçük blok
+      ezStart.value = ezStart.value || '1'
+      ezEnd.value = ezEnd.value || String(Math.min(openDetail.ayahs.length, 5))
+    }
+  })
+  root.querySelector('#ez-go').addEventListener('click', () => {
+    if (!openDetail) return
+    const n = openDetail.ayahs.length
+    let s = Math.trunc(Math.min(Math.max(1, Number(ezStart.value) || 1), n))
+    let e = Math.trunc(Math.min(Math.max(1, Number(ezEnd.value) || n), n))
+    if (e < s) [s, e] = [e, s] // ters girildiyse düzelt
+    ezStart.value = String(s)
+    ezEnd.value = String(e)
+    // loopStart/loopEnd tam ayahs dizisinde indeks (no değil): no genelde 1..n
+    const startIdx = openDetail.ayahs.findIndex((a) => a.no === s)
+    const endIdx = openDetail.ayahs.findIndex((a) => a.no === e)
+    if (startIdx < 0 || endIdx < 0) return
+    player.play({
+      title: `${openDetail.number}. ${trName(openDetail.number)} · Ezber ${s}-${e}`,
+      ayahs: openDetail.ayahs,
+      index: startIdx,
+      loop: true,
+      loopStart: startIdx,
+      loopEnd: endIdx,
+      onIndex: (i, auto) => {
+        savePosition(openDetail.number, openDetail.ayahs[i].no)
+        markPlayingCard(auto)
+      },
+      onStop: () => markPlayingCard(),
+    })
+  })
+
+  // --- Favori ayetler görünümü ---
+  function renderLibFavSub() {
+    const sub = root.querySelector('#lib-fav-sub')
+    const n = favorites.length
+    sub.textContent = n > 0 ? `${n} favori ayet` : 'Beğendiğin ayetleri sakla'
+  }
+
+  async function openFavView() {
+    libraryEl.hidden = true
+    favViewEl.hidden = false
+    onNav?.()
+    window.scrollTo(0, 0)
+    const listEl = root.querySelector('#fav-list')
+    const emptyEl = root.querySelector('#fav-empty')
+    const statusEl2 = root.querySelector('#fav-status')
+    listEl.replaceChildren()
+    emptyEl.hidden = favorites.length > 0
+    if (favorites.length === 0) {
+      statusEl2.hidden = true
+      return
+    }
+    statusEl2.hidden = false
+    statusEl2.textContent = 'Favoriler yükleniyor…'
+    // Sure başına tek getSurahDetail (memoize + IndexedDB): favori ayetleri çöz
+    const bySurah = new Map()
+    for (const f of favorites) {
+      if (!bySurah.has(f.s)) bySurah.set(f.s, [])
+      bySurah.get(f.s).push(f.a)
+    }
+    const frag = document.createDocumentFragment()
+    for (const [surahNo, ayahNos] of bySurah) {
+      let detail
+      try {
+        detail = await getSurahDetail(surahNo)
+      } catch {
+        continue // bu sure çevrimdışı çözülemedi; atla
+      }
+      for (const ayahNo of ayahNos) {
+        const a = detail.ayahs.find((x) => x.no === ayahNo)
+        if (!a) continue
+        const entry = document.createElement('div')
+        entry.className = 'fav-entry'
+        const open = document.createElement('button')
+        open.type = 'button'
+        open.className = 'fav-open'
+        open.textContent = `${surahNo}. ${trName(surahNo)} · ${surahNo}:${ayahNo} ›`
+        open.addEventListener('click', () => openSurah(surahNo, ayahNo))
+        const card = createAyahCard(a, surahNo, null, null, () => {
+          favorites = toggleFavorite(favorites, surahNo, ayahNo)
+          renderLibFavSub()
+          entry.remove()
+          if (favorites.length === 0) emptyEl.hidden = false
+          return isFavorite(favorites, surahNo, ayahNo)
+        }, true)
+        entry.append(open, card)
+        frag.appendChild(entry)
+      }
+    }
+    statusEl2.hidden = true
+    listEl.replaceChildren(frag)
+  }
+
+  root.querySelector('#lib-fav').addEventListener('click', openFavView)
+  root.querySelector('#fav-back').addEventListener('click', () => history.back())
+
   loadList()
+  renderLibFavSub()
 
   return {
     // Sekmeye dönüşte çalan ayetin vurgusu geri gelsin
@@ -552,6 +710,7 @@ export function setupQuran(root, player, onNav) {
       const c = cevsen.getSub()
       if (c) return c
       if (openSurahNo) return { type: 'sure', no: openSurahNo }
+      if (!favViewEl.hidden) return { type: 'fav' }
       if (!main.hidden) return { type: 'kuran' }
       return null
     },
@@ -561,6 +720,11 @@ export function setupQuran(root, player, onNav) {
       if (!sub) {
         if (openSurahNo) closeReader()
         showLibrary()
+        return
+      }
+      if (sub.type === 'fav') {
+        if (openSurahNo) closeReader()
+        if (favViewEl.hidden) openFavView()
         return
       }
       if (sub.type === 'kuran') {

@@ -82,10 +82,17 @@ export function setupPlayer() {
 
   function advance(dir, auto = false) {
     if (!playState) return
+    // Ezber döngüsü: [loopStart, loopEnd] aralığı (varsayılan tüm liste)
+    const start = Number.isInteger(playState.loopStart) ? playState.loopStart : 0
+    const end = Number.isInteger(playState.loopEnd) ? playState.loopEnd : playState.ayahs.length - 1
     const next = playState.index + dir
-    if (next < 0) return
-    if (next >= playState.ayahs.length) {
-      // liste bitti: oynatıcı kalır, durum duraklatılmış gösterilir
+    if (next < start) return
+    if (next > end) {
+      // Döngü açıksa otomatik ilerleme sonunda başa dön; değilse durur
+      if (playState.loop && auto) {
+        playIndex(start, true)
+        return
+      }
       audio.pause()
       isPlaying = false
       updateUi()
@@ -154,13 +161,15 @@ export function setupPlayer() {
   })
 
   return {
-    // Yeni bir çalma listesi başlat; kullanıcı eylemiyle çağrılır
-    play({ title, ayahs, index = 0, onIndex, onStop }) {
+    // Yeni bir çalma listesi başlat; kullanıcı eylemiyle çağrılır.
+    // Ezber için: loop + loopStart/loopEnd (tam ayahs dizisinde indeksler) —
+    // dizi kimliği korunur, okuyucu kart vurgusu ezberde de çalışır.
+    play({ title, ayahs, index = 0, onIndex, onStop, loop = false, loopStart, loopEnd }) {
       errorStreak = 0
       // Sahipliği kaybeden önceki liste temizlik yapabilsin (bayat vurgu kalmasın);
       // önce durum değiştirilir ki onStop içindeki getState() yeni listeyi görsün
       const prev = playState
-      playState = { title, ayahs, index, onIndex, onStop }
+      playState = { title, ayahs, index, onIndex, onStop, loop, loopStart, loopEnd }
       if (prev && prev.ayahs !== ayahs) prev.onStop?.()
       playIndex(index)
     },

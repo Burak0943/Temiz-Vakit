@@ -29,6 +29,7 @@ const BACKUP_KEYS = [
   'tv_quran_juz',
   'tv_gunun_ayeti',
   'tv_notify',
+  'tv_favorites',
 ]
 
 // Boyut tavanları: dürüst veri en fazla yüzlerce KB'dir; dev değerli hazırlanmış
@@ -107,6 +108,14 @@ const VALIDATORS = {
   tv_notify: (s) => {
     const o = JSON.parse(s)
     return o && typeof o === 'object' && !Array.isArray(o)
+  },
+  tv_favorites: (s) => {
+    const o = JSON.parse(s)
+    return (
+      Array.isArray(o) &&
+      o.length <= 1000 &&
+      o.every((x) => x && Number.isInteger(x.s) && Number.isInteger(x.a))
+    )
   },
 }
 
