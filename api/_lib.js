@@ -83,3 +83,18 @@ export function validCoord(lat, lon) {
     Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
   )
 }
+
+// Cron tetikleme yetkisi: harici zamanlayıcılar için HEM "Authorization: Bearer
+// <secret>" header'ı (GitHub Actions) HEM "?secret=<secret>" query'si
+// (cron-job.org) kabul edilir. secret tanımlı değilse kısıtlama uygulanmaz.
+export function isCronAuthorized(req, secret) {
+  if (!secret) return true
+  if (req.headers?.authorization === `Bearer ${secret}`) return true
+  // Query: önce Vercel'in ayrıştırdığı req.query, yoksa req.url'den çöz
+  let q = req.query?.secret
+  if (q == null && typeof req.url === 'string') {
+    const i = req.url.indexOf('?')
+    if (i >= 0) q = new URLSearchParams(req.url.slice(i + 1)).get('secret')
+  }
+  return q === secret
+}

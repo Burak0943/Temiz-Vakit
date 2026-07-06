@@ -3,7 +3,7 @@
 // Geçersiz abonelikler (404/410) temizlenir. Mükerrer koruması KV'de.
 import webpush from 'web-push'
 import { kv } from '@vercel/kv'
-import { listSubIds, getSub, removeSub, dueNotifications } from '../_lib.js'
+import { listSubIds, getSub, removeSub, dueNotifications, isCronAuthorized } from '../_lib.js'
 
 function configureVapid() {
   const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } = process.env
@@ -13,9 +13,9 @@ function configureVapid() {
 }
 
 export default async function handler(req, res) {
-  // Vercel Cron isteği doğrulaması (CRON_SECRET tanımlıysa zorunlu)
-  const secret = process.env.CRON_SECRET
-  if (secret && req.headers.authorization !== `Bearer ${secret}`) {
+  // Tetikleme doğrulaması (harici cron): header VEYA query secret (CRON_SECRET
+  // tanımlıysa zorunlu). cron-job.org query, GitHub Actions header kullanır.
+  if (!isCronAuthorized(req, process.env.CRON_SECRET)) {
     res.status(401).json({ error: 'yetkisiz' })
     return
   }

@@ -215,7 +215,7 @@ export function setupSettings(
       <p>Uygulamada reklam ve üçüncü taraf izleme yoktur.</p>
     </div>
     <div class="set-row">
-      <a id="set-feedback" class="set-link" href="mailto:gorus@temizvakit.example?subject=Nur%20Vakti%20G%C3%B6r%C3%BC%C5%9F">Görüş Bildir</a>
+      <a id="set-feedback" class="set-link" href="mailto:nurvaktiapp@gmail.com?subject=Nur%20Vakti%20G%C3%B6r%C3%BC%C5%9F">Görüş Bildir</a>
     </div>
 
     <div class="set-row">
