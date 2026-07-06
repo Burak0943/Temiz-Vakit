@@ -1047,6 +1047,226 @@ header h1 {
   cursor: pointer;
 }
 
+/* Mushaf görüntüleyici: Cevşen ile aynı görsel dil (mv ve mushaf öğeleri) */
+#mushaf-back,
+#mv-back {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+#mushaf-main h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+#mushaf-resume {
+  display: block;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  color: var(--gold);
+  background: var(--surface-next);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#mushaf-seg {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+#mushaf-seg button {
+  flex: 1;
+  padding: 8px 0;
+  font: inherit;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#mushaf-seg button.active {
+  color: var(--text-bright);
+  border-color: var(--accent);
+}
+
+#mushaf-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#mushaf-list li {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#mushaf-list .s-open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 16px;
+  font: inherit;
+  text-align: left;
+  color: var(--text-bright);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+#mushaf-list .s-open:hover {
+  background: var(--surface-next);
+}
+
+#mv-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+#mv-top #mv-back {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+#mv-title {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+#mv-secde {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--gold);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+#mv-stage {
+  background: #fff;
+  border-radius: 10px;
+  padding: 6px;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#mv-img {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+}
+
+#mv-status {
+  margin: 10px 0;
+  font-size: 14px;
+  color: #444;
+}
+
+#mv-retry {
+  font: inherit;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+#mv-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+#mv-prev,
+#mv-next {
+  flex: 1;
+  min-height: 48px;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--text-bright);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#mv-prev:disabled,
+#mv-next:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+#mv-jump {
+  width: 72px;
+  min-height: 44px;
+  padding: 4px 8px;
+  font: inherit;
+  text-align: center;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+#mv-go {
+  min-height: 44px;
+  padding: 4px 14px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#qc-back {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+#quran-choice h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
 #quran-status,
 #qr-status,
 #nazar-status {

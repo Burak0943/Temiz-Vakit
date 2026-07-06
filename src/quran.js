@@ -16,6 +16,7 @@ import { setupCevsen } from './cevsen.js'
 import { wakeRef, wakeUnref } from './wakelock.js'
 import { shareAyah } from './ayah-share.js'
 import { loadFavorites, isFavorite, toggleFavorite } from './favorites.js'
+import { setupMushaf } from './mushaf.js'
 
 // Birincil görünen ad Türkçe (kaynak: quran.com v4); dizi dışı kalırsa güvenli geri dönüş
 const trName = (number) => SURAH_NAMES_TR[number - 1] || `Sure ${number}`
@@ -79,6 +80,18 @@ export function setupQuran(root, player, onNav) {
         <span class="lib-sub" id="lib-fav-sub">Beğendiğin ayetleri sakla</span>
       </button>
     </div>
+    <div id="quran-choice" hidden>
+      <button type="button" id="qc-back">‹ Geri</button>
+      <h2>Kur'an-ı Kerim</h2>
+      <button type="button" class="lib-card" id="qc-meal">
+        <span class="lib-title">Meal Oku</span>
+        <span class="lib-sub">Ayet ayet · meal, okunuş, ses</span>
+      </button>
+      <button type="button" class="lib-card" id="qc-mushaf">
+        <span class="lib-title">Mushaf Oku</span>
+        <span class="lib-sub">Hayrat hat sayfaları</span>
+      </button>
+    </div>
     <div id="fav-view" hidden>
       <button type="button" id="fav-back">‹ Geri</button>
       <h2>Favori Ayetler</h2>
@@ -133,13 +146,17 @@ export function setupQuran(root, player, onNav) {
       <p class="footnote">Kaynak: AlQuran Cloud · Meal: Diyanet İşleri · Okunuş: Çeviriyazı</p>
     </div>
     <div id="cevsen-root"></div>
+    <div id="mushaf-root"></div>
   `
 
   const libraryEl = root.querySelector('#library-main')
+  const choiceEl = root.querySelector('#quran-choice')
   const main = root.querySelector('#quran-main')
   const reader = root.querySelector('#quran-reader')
   // Cevşen aynı sekmenin ikinci kitabı: kendi alt-görünümlerini kendisi yönetir
   const cevsen = setupCevsen(root.querySelector('#cevsen-root'), onNav)
+  // Mushaf: Kur'an-ı Kerim'in "Mushaf Oku" görünümü (Cevşen mimarisi)
+  const mushaf = setupMushaf(root.querySelector('#mushaf-root'), onNav)
   const ayahsEl = root.querySelector('#qr-ayahs')
   const statusEl = root.querySelector('#quran-status')
   const retryBtn = root.querySelector('#quran-retry')
@@ -236,15 +253,29 @@ export function setupQuran(root, player, onNav) {
     main.hidden = true
     reader.hidden = true
     favViewEl.hidden = true
+    choiceEl.hidden = true
     renderLibResumes()
     renderLibFavSub()
     libraryEl.hidden = false
     window.scrollTo(0, 0)
   }
 
-  function openBook() {
-    // sure listesi görünümü
+  // Kur'an-ı Kerim → Meal Oku / Mushaf Oku seçimi.
+  // Diğer panelleri de gizle: {type:'ksecim'}'e geri gezinmede (Meal'den geri)
+  // sure listesi seçim ekranının altında açık kalıyordu.
+  function showChoice() {
     libraryEl.hidden = true
+    main.hidden = true
+    reader.hidden = true
+    favViewEl.hidden = true
+    choiceEl.hidden = false
+    window.scrollTo(0, 0)
+  }
+
+  function openBook() {
+    // sure listesi görünümü (Meal)
+    libraryEl.hidden = true
+    choiceEl.hidden = true
     reader.hidden = true
     favViewEl.hidden = true
     main.hidden = false
@@ -252,8 +283,17 @@ export function setupQuran(root, player, onNav) {
   }
 
   root.querySelector('#lib-quran').addEventListener('click', () => {
+    showChoice()
+    onNav?.()
+  })
+  root.querySelector('#qc-back').addEventListener('click', () => history.back())
+  root.querySelector('#qc-meal').addEventListener('click', () => {
     openBook()
     onNav?.()
+  })
+  root.querySelector('#qc-mushaf').addEventListener('click', () => {
+    choiceEl.hidden = true
+    mushaf.openList() // onNav'ı kendisi çağırır
   })
   root.querySelector('#lib-cevsen').addEventListener('click', () => {
     libraryEl.hidden = true
@@ -440,6 +480,7 @@ export function setupQuran(root, player, onNav) {
   async function openSurah(number, targetAyah = null) {
     openSurahNo = number
     libraryEl.hidden = true // devam kartından doğrudan açılışta kitaplık kapanır
+    choiceEl.hidden = true
     favViewEl.hidden = true // favori listesinden açılışta o da kapanır
     main.hidden = true
     reader.hidden = false
@@ -635,6 +676,7 @@ export function setupQuran(root, player, onNav) {
 
   async function openFavView() {
     libraryEl.hidden = true
+    choiceEl.hidden = true
     favViewEl.hidden = false
     onNav?.()
     window.scrollTo(0, 0)
@@ -709,17 +751,36 @@ export function setupQuran(root, player, onNav) {
     getSub() {
       const c = cevsen.getSub()
       if (c) return c
+      const m = mushaf.getSub()
+      if (m) return m
       if (openSurahNo) return { type: 'sure', no: openSurahNo }
       if (!favViewEl.hidden) return { type: 'fav' }
+      if (!choiceEl.hidden) return { type: 'ksecim' }
       if (!main.hidden) return { type: 'kuran' }
       return null
     },
     applySub(sub) {
       const isCevsen = sub && (sub.type === 'cevsen' || sub.type === 'cevsen-sayfa')
+      const isMushaf = sub && (sub.type === 'mushaf' || sub.type === 'mushaf-sayfa')
       if (!isCevsen) cevsen.applySub(null)
+      if (!isMushaf) mushaf.applySub(null)
       if (!sub) {
         if (openSurahNo) closeReader()
         showLibrary()
+        return
+      }
+      if (isMushaf) {
+        if (openSurahNo) closeReader()
+        libraryEl.hidden = true
+        choiceEl.hidden = true
+        main.hidden = true
+        favViewEl.hidden = true
+        mushaf.applySub(sub)
+        return
+      }
+      if (sub.type === 'ksecim') {
+        if (openSurahNo) closeReader()
+        showChoice()
         return
       }
       if (sub.type === 'fav') {

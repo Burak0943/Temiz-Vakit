@@ -1,6 +1,6 @@
 // Temiz Vakit service worker — app shell önbelleği, cache-first.
 // Vakit hesabı adhan ile tamamen yerel; uygulamanın ağ bağımlılığı yok.
-const CACHE = 'tv-v34'
+const CACHE = 'tv-v35'
 // Cevşen hat sayfası görüntüleri (kulliyat.risale.online): CORS başlığı
 // olmadığından sayfa JS'i blob okuyamaz — offline, SW'nin opak yanıt
 // önbelleğiyle sağlanır. AYRI ve KALICI cache: sürüm bump'larında silinmez,
@@ -8,6 +8,19 @@ const CACHE = 'tv-v34'
 const CEVSEN_CACHE = 'tv-cevsen-sayfa'
 const CEVSEN_HOST = 'kulliyat.risale.online'
 const CEVSEN_PATH = '/images/Cevsen/'
+// Mushaf (Hayrat) sayfa görüntüleri — aynı opak-önbellek deseni, ayrı kalıcı cache
+const MUSHAF_CACHE = 'tv-mushaf-sayfa'
+const MUSHAF_HOST = 'kuran.hayrat.com.tr'
+const MUSHAF_PATH = '/Sayfalar/'
+// Kalıcı görüntü önbellekleri: sürüm bump'larında silinmez
+const IMAGE_CACHES = [CEVSEN_CACHE, MUSHAF_CACHE]
+
+// İstek bir hat-sayfası görüntüsüyse ilgili kalıcı cache adını döndürür
+function imageCacheFor(url) {
+  if (url.hostname === CEVSEN_HOST && url.pathname.startsWith(CEVSEN_PATH)) return CEVSEN_CACHE
+  if (url.hostname === MUSHAF_HOST && url.pathname.startsWith(MUSHAF_PATH)) return MUSHAF_CACHE
+  return null
+}
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -99,7 +112,7 @@ self.addEventListener('activate', (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((k) => k !== CACHE && k !== CEVSEN_CACHE) // Cevşen sayfaları kalıcı
+            .filter((k) => k !== CACHE && !IMAGE_CACHES.includes(k)) // hat sayfaları kalıcı
             .map((k) => caches.delete(k)),
         ),
       )
@@ -111,11 +124,13 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
   const url = new URL(request.url)
-  // Cevşen sayfa görüntüleri: cache-first, opak yanıt saklanır (no-cors img).
-  // Sayfa haritası sabit istekler ürettiğinden 404 önbelleğe girme riski yok.
-  if (url.hostname === CEVSEN_HOST && url.pathname.startsWith(CEVSEN_PATH)) {
+  // Cevşen/Mushaf hat sayfası görüntüleri: cache-first, opak yanıt saklanır
+  // (no-cors img). Sayfa haritası sabit istekler ürettiğinden 404 önbelleğe
+  // girme riski yok; hata gövdesi client tarafında onarılır.
+  const imgCache = imageCacheFor(url)
+  if (imgCache) {
     event.respondWith(
-      caches.open(CEVSEN_CACHE).then((cache) =>
+      caches.open(imgCache).then((cache) =>
         cache.match(request).then(
           (hit) =>
             hit ||
